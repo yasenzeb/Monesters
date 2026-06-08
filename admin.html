@@ -286,7 +286,7 @@ tbody td { padding: 12px 14px; vertical-align: middle; }
         <i class="fas fa-plus-circle"></i> إضافة منتج
       </div>
       <div class="nav-item" data-panel="manage" onclick="switchPanel(this)">
-        <i class="fas fa-mobile-alt"></i> إدارة المنتجات
+        <i class="fas fa-shoe-prints"></i> إدارة المنتجات
       </div>
       <div class="nav-section">الإعدادات</div>
       <div class="nav-item" data-panel="categories" onclick="switchPanel(this)">
@@ -314,10 +314,10 @@ tbody td { padding: 12px 14px; vertical-align: middle; }
     <!-- ══ DASHBOARD ══ -->
     <section class="panel active" id="panel-dashboard">
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-icon gold"><i class="fas fa-mobile-alt"></i></div><div><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">إجمالي المنتجات</div></div></div>
+        <div class="stat-card"><div class="stat-icon gold"><i class="fas fa-shoe-prints"></i></div><div><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">إجمالي المنتجات</div></div></div>
         <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-shoe-prints"></i></div><div><div class="stat-val" id="stat-sneakers">—</div><div class="stat-lbl">كوتشيات</div></div></div>
-        <div class="stat-card"><div class="stat-icon green"><i class="fas fa-socks"></i></div><div><div class="stat-val" id="stat-airpods">—</div><div class="stat-lbl">إير بودز</div></div></div>
-        <div class="stat-card"><div class="stat-icon red"><i class="fas fa-running"></i></div><div><div class="stat-val" id="stat-sports">—</div><div class="stat-lbl">رياضية</div></div></div>
+        <div class="stat-card"><div class="stat-icon green"><i class="fas fa-shoe-prints"></i></div><div><div class="stat-val" id="stat-slippers">—</div><div class="stat-lbl">سليبرز</div></div></div>
+        <div class="stat-card"><div class="stat-icon red"><i class="fas fa-shoe-prints"></i></div><div><div class="stat-val" id="stat-sports">—</div><div class="stat-lbl">رياضية</div></div></div>
         <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-tags"></i></div><div><div class="stat-val" id="stat-cats">—</div><div class="stat-lbl">الفئات</div></div></div>
         <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-star"></i></div><div><div class="stat-val" id="stat-reviews">—</div><div class="stat-lbl">الآراء</div></div></div>
       </div>
@@ -878,14 +878,14 @@ function updateStats() {
   document.getElementById('stat-cats').textContent       = (allCategories||[]).length;
   document.getElementById('stat-reviews').textContent    = (allReviews||[]).length;
   document.getElementById('stat-sneakers').textContent = (allProducts||[]).filter(p=>p.type==='sneakers').length;
-  document.getElementById('stat-airpods').textContent    = (allProducts||[]).filter(p=>p.type==='airpods').length;
+  document.getElementById('stat-slippers').textContent    = (allProducts||[]).filter(p=>p.type==='slippers').length;
   document.getElementById('stat-sports').textContent  = (allProducts||[]).filter(p=>p.type==='sports').length;
 }
 
 function renderRecentTable() {
   const recent=allProducts.slice(0,5);
   const body=document.getElementById('recent-table-body');
-  if(!recent.length){body.innerHTML='<div class="empty-state"><i class="fas fa-mobile-alt"></i>لا توجد منتجات</div>';return;}
+  if(!recent.length){body.innerHTML='<div class="empty-state"><i class="fas fa-shoe-prints"></i>لا توجد منتجات</div>';return;}
   body.innerHTML=`<div class="table-responsive"><table style="width:100%">
     <thead><tr><th>الصورة</th><th>الاسم</th><th>الفئة</th><th>السعر</th><th>الخصم</th></tr></thead>
     <tbody>${recent.map(p=>`<tr>
@@ -917,7 +917,7 @@ function applyFilterAndSearch(){
 function renderProductsTable(){
   const tbody=document.getElementById('products-table-body');
   if(!filteredProducts.length){
-    tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><i class="fas fa-mobile-alt"></i>لا توجد منتجات</div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><i class="fas fa-shoe-prints"></i>لا توجد منتجات</div></td></tr>`;
     updatePagination(); return;
   }
   const start=(currentPage-1)*PER_PAGE;
