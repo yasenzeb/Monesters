@@ -1,5 +1,8 @@
+import { IncomingForm } from 'formidable';
+import { readFileSync } from 'fs';
+
 export const config = {
-  api: { bodyParser: { sizeLimit: '10mb' } }
+  api: { bodyParser: false }
 };
 
 export default async function handler(req, res) {
@@ -17,18 +20,44 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { data: base64Data, fileName } = req.body;
-
-    if (!base64Data) {
-      return res.status(400).json({ success: false, error: 'No image data provided.' });
-    }
-
-    const cloudName  = process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey     = process.env.CLOUDINARY_API_KEY;
-    const apiSecret  = process.env.CLOUDINARY_API_SECRET;
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey    = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
     if (!cloudName || !apiKey || !apiSecret) {
       return res.status(500).json({ success: false, error: 'Cloudinary env vars not configured.' });
+    }
+
+    const contentType = req.headers['content-type'] || '';
+
+    let base64Data;
+
+    if (contentType.includes('multipart/form-data')) {
+      // FormData (file upload from admin)
+      const form = new IncomingForm({ maxFileSize: 10 * 1024 * 1024 });
+      const { files } = await new Promise((resolve, reject) => {
+        form.parse(req, (err, fields, files) => {
+          if (err) reject(err);
+          else resolve({ fields, files });
+        });
+      });
+      const file = files.file?.[0] || files.file;
+      if (!file) return res.status(400).json({ success: false, error: 'No file provided.' });
+      const fileBuffer = readFileSync(file.filepath || file.path);
+      const mimeType = file.mimetype || file.type || 'image/jpeg';
+      base64Data = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
+    } else {
+      // JSON base64
+      const body = await new Promise((resolve) => {
+        let data = '';
+        req.on('data', chunk => data += chunk);
+        req.on('end', () => resolve(JSON.parse(data)));
+      });
+      base64Data = body.data;
+    }
+
+    if (!base64Data) {
+      return res.status(400).json({ success: false, error: 'No image data provided.' });
     }
 
     const timestamp = Math.round(Date.now() / 1000);
@@ -60,6 +89,7 @@ export default async function handler(req, res) {
       url: cloudinaryData.secure_url,
       public_id: cloudinaryData.public_id
     });
+
   } catch (err) {
     console.error('[API /upload]', err);
     return res.status(500).json({ success: false, error: err.message });

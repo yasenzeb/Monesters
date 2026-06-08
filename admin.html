@@ -256,7 +256,7 @@
   x-text="toast.msg"></div>
 
 <script>
-const API = 'https://monesters.vercel.app';
+const API = 'https://your-vercel-app.vercel.app'; // ← ضع رابط Vercel هنا
 
 function adminPanel() {
   return {
@@ -289,7 +289,7 @@ function adminPanel() {
       this.loadingProds = true;
       try {
         const r = await fetch(`${API}/api/products`);
-        this.products = await r.json();
+        const d = await r.json(); this.products = d.products || [];
       } catch { this.showToast('❌ خطأ في جلب المنتجات', false); }
       this.loadingProds = false;
     },
@@ -297,7 +297,7 @@ function adminPanel() {
     async fetchCategories() {
       try {
         const r = await fetch(`${API}/api/categories`);
-        this.categories = await r.json();
+        const d2 = await r.json(); this.categories = d2.categories || [];
       } catch {}
     },
 
