@@ -381,7 +381,7 @@
 </div>
 
 <script>
-const API = 'https://your-vercel-app.vercel.app';
+const API = 'https://monesters.vercel.app';
 
 function store() {
   return {
@@ -403,7 +403,8 @@ function store() {
       try {
         const r = await fetch(`${API}/api/products`);
         if (!r.ok) throw new Error();
-        this.products = await r.json();
+        const d = await r.json();
+        this.products = d.products || [];
       } catch { this.products = []; }
       this.loadingProds = false;
     },
@@ -412,7 +413,8 @@ function store() {
       try {
         const r = await fetch(`${API}/api/categories`);
         if (!r.ok) throw new Error();
-        this.categories = await r.json();
+        const d2 = await r.json();
+        this.categories = d2.categories || [];
       } catch { this.categories = []; }
       this.loadingCats = false;
     },
