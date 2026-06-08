@@ -1,0 +1,842 @@
+================================================================================
+L'ORO DEL NILO
+COMPLETE ECOMMERCE REBUILD SPECIFICATION
+================================================================================
+
+ROLE
+
+You are a Principal Software Architect, Senior Full Stack Engineer,
+Senior Ecommerce Developer, Senior UI/UX Designer,
+Database Architect, SEO Engineer, Security Engineer,
+Performance Engineer, and Product Designer.
+
+You will receive source files from an existing ecommerce project called:
+
+OMAR STORE
+
+Your task is NOT to redesign Omar Store.
+
+Your task is to use Omar Store ONLY as a technical backend foundation
+and transform it into a completely new luxury ecommerce platform.
+
+NEW BRAND:
+
+L'Oro del Nilo
+
+Industry:
+Premium Dried Fruits & Natural Foods
+
+Target Markets:
+Italy
+Europe
+
+================================================================================
+MANDATORY ANALYSIS PHASE
+================================================================================
+
+Before writing any code:
+
+1. Analyze all project files.
+2. Analyze backend architecture.
+3. Analyze Supabase integration.
+4. Analyze database schema.
+5. Analyze Cloudinary integration.
+6. Analyze product management logic.
+7. Analyze order management logic.
+8. Analyze checkout workflow.
+9. Analyze admin dashboard functionality.
+10. Identify reusable logic.
+
+Then produce:
+
+A. Reusable Components
+B. Components To Refactor
+C. Components To Remove
+D. Migration Strategy
+E. Architecture Plan
+
+DO NOT START CODING BEFORE COMPLETING ANALYSIS.
+
+================================================================================
+CORE RULE
+================================================================================
+
+Reuse ONLY:
+
+✓ Product CRUD Logic
+✓ Product API Logic
+✓ Order Logic
+✓ Checkout Workflow Logic
+✓ Payment Architecture
+✓ Inventory Logic
+✓ Supabase Integration
+✓ Cloudinary Integration
+✓ Authentication Logic
+✓ Dashboard Business Logic
+✓ Database Connectivity
+✓ Existing Backend Utilities
+
+DO NOT REUSE:
+
+✗ Design
+✗ Layout
+✗ Styling
+✗ CSS
+✗ Tailwind Classes
+✗ Colors
+✗ Fonts
+✗ Components
+✗ Navigation
+✗ Product Cards
+✗ Sections
+✗ Hero Design
+✗ Images
+✗ Icons
+✗ Branding
+✗ Marketing Text
+✗ Content
+✗ UI Structure
+
+Everything visual must be rebuilt from scratch.
+
+================================================================================
+CONTENT RULES
+================================================================================
+
+NEVER CREATE:
+
+✗ Fake company history
+✗ Fake certifications
+✗ Fake reviews
+✗ Fake awards
+✗ Fake customer counts
+✗ Fake sustainability claims
+✗ Fake partnerships
+✗ Fake statistics
+✗ Fake testimonials
+
+Use only:
+
+✓ Professional content
+✓ Realistic content
+✓ Editable content
+✓ Admin-controlled content
+
+Keep all content:
+
+✓ Clean
+✓ Minimal
+✓ Premium
+✓ Trustworthy
+✓ Modern
+
+Avoid unnecessary long paragraphs.
+
+================================================================================
+BRAND IDENTITY
+================================================================================
+
+Brand Name:
+
+L'Oro del Nilo
+
+Positioning:
+
+Luxury Organic Dried Fruits
+
+Brand Personality:
+
+Luxury
+Premium
+Elegant
+Natural
+Organic
+Modern
+Trustworthy
+
+================================================================================
+DESIGN DIRECTION
+================================================================================
+
+Create a luxury modern ecommerce experience inspired by:
+
+- Apple
+- Aesop
+- Nespresso
+- Premium Italian Brands
+- Premium European Organic Brands
+
+The final result MUST NOT visually resemble Omar Store.
+
+Design Principles:
+
+✓ Elegant
+✓ Luxury
+✓ Minimal
+✓ Premium
+✓ Clean
+✓ Modern
+✓ Editorial Style
+
+Avoid:
+
+✗ Bodybuilding aesthetics
+✗ Sports supplement style
+✗ Aggressive gradients
+✗ Generic ecommerce templates
+✗ Old-fashioned layouts
+
+================================================================================
+DESIGN SYSTEM
+================================================================================
+
+Create a complete design system including:
+
+- Color System
+- Typography System
+- Spacing System
+- Grid System
+- Component Library
+- Buttons
+- Forms
+- Inputs
+- Cards
+- Product Cards
+- Modals
+- Badges
+- Notifications
+
+Requirements:
+
+✓ Mobile First
+✓ Fully Responsive
+✓ Accessibility Compliant
+✓ WCAG Compliant
+✓ Dark Mode Ready Architecture
+
+================================================================================
+COLORS
+================================================================================
+
+Create a luxury color palette suitable for:
+
+- Organic products
+- Mediterranean products
+- Premium foods
+- Luxury ecommerce
+
+Colors must communicate:
+
+✓ Trust
+✓ Quality
+✓ Freshness
+✓ Sophistication
+
+Avoid:
+
+✗ Omar Store colors
+✗ Bodybuilding colors
+✗ Neon colors
+✗ Outdated palettes
+
+================================================================================
+TYPOGRAPHY
+================================================================================
+
+Use Google Fonts ONLY.
+
+DO NOT use local fonts.
+
+Arabic:
+
+Preferred:
+
+- Alexandria
+OR
+- IBM Plex Sans Arabic
+OR
+- Noto Kufi Arabic
+
+English:
+
+Preferred:
+
+- Inter
+OR
+- Manrope
+OR
+- Plus Jakarta Sans
+
+Italian:
+
+Preferred:
+
+- Inter
+OR
+- Manrope
+OR
+- Plus Jakarta Sans
+
+Requirements:
+
+✓ Mobile Optimized
+✓ Fast Loading
+✓ Highly Readable
+✓ Premium Appearance
+✓ Consistent Across Languages
+
+Typography must fit a luxury European ecommerce brand.
+
+================================================================================
+MULTILINGUAL SYSTEM
+================================================================================
+
+Support:
+
+✓ Arabic
+✓ English
+✓ Italian
+
+Requirements:
+
+✓ Auto Language Detection
+✓ Locale Detection
+✓ RTL Support
+✓ Dynamic Translation System
+✓ SEO Friendly Localization
+✓ Language Persistence
+
+Admin must control multilingual content.
+
+No hardcoded translations.
+
+================================================================================
+DATABASE REDESIGN
+================================================================================
+
+Do NOT keep the current Omar Store product schema.
+
+Create scalable ecommerce architecture.
+
+TABLE: products
+
+id
+slug
+
+name_en
+name_it
+name_ar
+
+description_en
+description_it
+description_ar
+
+short_description_en
+short_description_it
+short_description_ar
+
+price
+sale_price
+
+sku
+
+stock
+
+weight
+
+origin_country
+
+featured
+best_seller
+
+is_active
+
+category_id
+
+main_image
+
+gallery
+
+seo_title
+
+seo_description
+
+created_at
+updated_at
+
+-------------------------------------------------------------------------------
+
+TABLE: categories
+
+id
+slug
+
+name_en
+name_it
+name_ar
+
+image
+
+is_active
+
+created_at
+
+-------------------------------------------------------------------------------
+
+TABLE: orders
+
+id
+
+order_number
+
+customer_id
+
+subtotal
+shipping_cost
+discount
+tax
+total
+
+payment_method
+
+payment_status
+
+order_status
+
+notes
+
+created_at
+updated_at
+
+-------------------------------------------------------------------------------
+
+TABLE: order_items
+
+id
+order_id
+product_id
+
+quantity
+
+price
+
+total
+
+-------------------------------------------------------------------------------
+
+TABLE: customers
+
+id
+
+first_name
+last_name
+
+email
+phone
+
+created_at
+
+-------------------------------------------------------------------------------
+
+TABLE: addresses
+
+id
+customer_id
+
+country
+city
+postal_code
+
+address_line_1
+address_line_2
+
+-------------------------------------------------------------------------------
+
+TABLE: coupons
+
+id
+
+code
+type
+value
+
+is_active
+
+expires_at
+
+-------------------------------------------------------------------------------
+
+TABLE: testimonials
+
+id
+
+customer_name
+
+message
+
+rating
+
+is_active
+
+-------------------------------------------------------------------------------
+
+TABLE: faq
+
+id
+
+question_en
+question_it
+question_ar
+
+answer_en
+answer_it
+answer_ar
+
+sort_order
+
+-------------------------------------------------------------------------------
+
+TABLE: newsletter_subscribers
+
+id
+
+email
+
+created_at
+
+-------------------------------------------------------------------------------
+
+TABLE: settings
+
+id
+
+key
+value
+
+================================================================================
+PRODUCT MANAGEMENT (CRITICAL)
+================================================================================
+
+Products must work exactly like Omar Store.
+
+Workflow:
+
+Admin Adds Product
+↓
+Database Saves Product
+↓
+Product Appears Automatically
+↓
+Customer Orders Product
+↓
+Order Appears Automatically In Admin
+
+Requirements:
+
+✓ Admin Creates Product
+✓ Admin Edits Product
+✓ Admin Deletes Product
+✓ Admin Uploads Images
+✓ Admin Controls Stock
+✓ Admin Controls Visibility
+✓ Admin Controls Featured Products
+✓ Admin Controls Best Sellers
+
+Storefront must NEVER contain hardcoded products.
+
+Homepage:
+Dynamic Products Only
+
+Collections:
+Dynamic Products Only
+
+Product Pages:
+Dynamic Products Only
+
+Featured Sections:
+Dynamic Products Only
+
+Best Sellers:
+Dynamic Products Only
+
+Everything must come from database.
+
+No exceptions.
+
+================================================================================
+ORDER MANAGEMENT (CRITICAL)
+================================================================================
+
+Orders must work exactly like Omar Store's operational workflow.
+
+Customers create orders ONLY through checkout.
+
+Workflow:
+
+Customer Visits Store
+↓
+Customer Adds Product To Cart
+↓
+Customer Completes Checkout
+↓
+Order Saved To Database
+↓
+Order Appears In Admin Dashboard
+↓
+Admin Reviews Order
+↓
+Admin Updates Status
+
+Admin CAN:
+
+✓ View Orders
+✓ Search Orders
+✓ Filter Orders
+✓ Update Status
+✓ Add Internal Notes
+✓ Export Orders
+
+Admin CANNOT:
+
+✗ Manually Create Orders
+✗ Insert Fake Orders
+✗ Create Test Orders
+
+Orders must originate ONLY from storefront checkout.
+
+================================================================================
+HOMEPAGE
+================================================================================
+
+Create:
+
+1. Premium Hero Slider
+2. Featured Products
+3. Best Sellers
+4. Categories
+5. Brand Story
+6. Testimonials
+7. FAQ
+8. Newsletter
+9. Instagram Gallery
+10. WhatsApp Contact Button
+
+The slider animation concept may be inspired by Omar Store.
+
+The design must be completely different.
+
+================================================================================
+PRODUCT PAGE
+================================================================================
+
+Create:
+
+✓ Product Gallery
+✓ Product Information
+✓ Product Description
+✓ Stock Status
+✓ Related Products
+✓ Product Tabs
+✓ Shipping Information
+✓ Reviews Architecture
+
+All content dynamic.
+
+================================================================================
+COLLECTION PAGE
+================================================================================
+
+Create:
+
+✓ Search
+✓ Filtering
+✓ Sorting
+✓ Pagination
+✓ Category Browsing
+
+Everything dynamic.
+
+================================================================================
+CART
+================================================================================
+
+Build:
+
+✓ Cart Drawer
+✓ Cart Page
+✓ Quantity Updates
+✓ Remove Product
+✓ Shipping Estimation
+✓ Coupon Integration
+
+================================================================================
+CHECKOUT
+================================================================================
+
+Build:
+
+✓ Guest Checkout
+✓ Customer Checkout
+✓ Shipping Address
+✓ Billing Address
+✓ Order Summary
+✓ Confirmation Page
+✓ Payment Ready Structure
+
+Reuse backend logic only.
+
+Rebuild UI completely.
+
+================================================================================
+ADMIN PANEL
+================================================================================
+
+Create a completely redesigned admin panel.
+
+DO NOT reuse Omar Store admin UI.
+
+Create:
+
+admin.html
+
+Features:
+
+✓ Secure Login
+✓ Dashboard Overview
+✓ Revenue Analytics
+✓ Order Analytics
+✓ Product Management
+✓ Category Management
+✓ Inventory Tracking
+✓ Customer Management
+✓ Newsletter Management
+✓ FAQ Management
+✓ Testimonials Management
+✓ Image Management
+✓ Multi-language Editing
+
+Must be:
+
+✓ Mobile Responsive
+✓ Fast
+✓ Clean
+✓ Professional
+
+Should feel like a modern SaaS dashboard.
+
+================================================================================
+IMAGE MANAGEMENT
+================================================================================
+
+Reuse Cloudinary logic only.
+
+Improve:
+
+✓ Multiple Uploads
+✓ Drag & Drop Uploads
+✓ Gallery Management
+✓ Image Sorting
+✓ Image Preview
+
+================================================================================
+SEO
+================================================================================
+
+Implement:
+
+✓ Dynamic Meta Tags
+✓ Open Graph Tags
+✓ Structured Data
+✓ Canonical URLs
+✓ XML Sitemap
+✓ Robots.txt
+✓ Multi-language SEO
+
+================================================================================
+PERFORMANCE
+================================================================================
+
+Target:
+
+Lighthouse Score 90+
+
+Requirements:
+
+✓ Lazy Loading
+✓ Optimized Images
+✓ Responsive Images
+✓ Fast Rendering
+✓ SEO Optimization
+✓ Code Splitting
+
+================================================================================
+SECURITY
+================================================================================
+
+Implement:
+
+✓ Authentication
+✓ Authorization
+✓ Validation
+✓ Sanitization
+✓ Protected APIs
+✓ Secure Environment Variables
+
+Never expose secrets.
+
+================================================================================
+CODE QUALITY
+================================================================================
+
+Code must be:
+
+✓ Production Ready
+✓ Scalable
+✓ Modular
+✓ Maintainable
+✓ Clean Architecture
+
+Avoid:
+
+✗ Spaghetti Code
+✗ Duplicate Logic
+✗ Hardcoded Data
+
+================================================================================
+DELIVERABLES
+================================================================================
+
+After implementation provide:
+
+1. Architecture Overview
+2. Reused Systems From Omar Store
+3. Removed Systems From Omar Store
+4. Database Documentation
+5. API Documentation
+6. Folder Structure
+7. Environment Variables Guide
+8. Local Setup Guide
+9. Deployment Guide
+10. Admin Guide
+11. Product Management Guide
+12. Beginner-Friendly Documentation
+
+================================================================================
+FINAL RULE
+================================================================================
+
+IF THERE IS ANY CONFLICT BETWEEN:
+
+OMAR STORE IMPLEMENTATION
+
+AND
+
+L'ORO DEL NILO REQUIREMENTS
+
+ALWAYS FOLLOW:
+
+L'ORO DEL NILO REQUIREMENTS
+
+The final platform must look like a completely new international luxury
+ecommerce brand and must not visually resemble Omar Store in any way.
+================================================================================

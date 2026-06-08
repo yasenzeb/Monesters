@@ -156,7 +156,7 @@ function checkoutPage() {
       const items = this.cart.map(i=>`• ${i.name} (مقاس: ${i.size||'-'}, لون: ${i.color||'-'}) × ${i.qty||1} = EGP ${(i.finalPrice||i.price)*(i.qty||1)}`).join('\n');
       const total = this.subtotal - this.discount;
       const msg = `🛒 *طلب جديد من MONSTERS*\n\n👤 الاسم: ${this.form.name}\n📱 الموبايل: ${this.form.phone}\n📍 المحافظة: ${this.form.gov}\n🏠 العنوان: ${this.form.address}\n💳 الدفع: ${this.form.payment==='cod'?'عند الاستلام':'تحويل إلكتروني'}\n${this.form.notes?'📝 ملاحظات: '+this.form.notes+'\n':''}\n📦 *المنتجات:*\n${items}\n\n💰 الإجمالي: EGP ${total}\n${this.discount?'🎁 خصم: EGP '+this.discount+'\n':''}\n✅ طلب عبر موقع MONSTERS Store`;
-      const url = `https://wa.me/201050805608?text=${encodeURIComponent(msg)}`;
+      const url = `h=${encodeURIComponent(msg)}`;
       localStorage.removeItem('monsters_cart');
       localStorage.removeItem('monsters_discount');
       localStorage.setItem('monsters_last_order', JSON.stringify({...this.form, total, items:this.cart}));
