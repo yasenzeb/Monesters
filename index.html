@@ -25,6 +25,8 @@
   .nav-link:hover { color:#22c55e; }
   .img-slide { transition: transform .5s ease; }
   .img-slide:hover { transform: scale(1.07); }
+  .cat-card { transition: transform .25s, box-shadow .25s; }
+  .cat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,.1); }
   @media(max-width:640px){
     .hero-title { font-size: 2.4rem !important; line-height:1.15; }
     .hero-sub { font-size:1rem !important; }
@@ -69,7 +71,7 @@
     <div class="hidden md:flex items-center gap-5 text-sm font-bold">
       <a href="index.html" class="nav-link text-green-500">الرئيسية</a>
       <a href="#products" class="nav-link text-gray-700">المنتجات</a>
-      <a href="#categories" class="nav-link text-gray-700">الأقسام</a>
+      <a href="#products" class="nav-link text-gray-700">الأقسام</a>
       <a href="#about" class="nav-link text-gray-700">من نحن</a>
       <a href="#contact" class="nav-link text-gray-700">تواصل معنا</a>
     </div>
@@ -84,13 +86,12 @@
       </button>
     </div>
   </div>
-  <!-- Mobile Menu -->
   <div x-show="mobileMenu" x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
     class="md:hidden bg-white border-t px-5 py-4 flex flex-col gap-4 text-sm font-bold shadow-lg">
     <a href="index.html" class="text-green-500 flex items-center gap-2"><i class="fas fa-home w-5"></i>الرئيسية</a>
     <a href="#products" @click="mobileMenu=false" class="text-gray-700 flex items-center gap-2"><i class="fas fa-box w-5"></i>المنتجات</a>
-    <a href="#categories" @click="mobileMenu=false" class="text-gray-700 flex items-center gap-2"><i class="fas fa-tags w-5"></i>الأقسام</a>
+    <a href="#products" @click="mobileMenu=false" class="text-gray-700 flex items-center gap-2"><i class="fas fa-tags w-5"></i>الأقسام</a>
     <a href="#about" @click="mobileMenu=false" class="text-gray-700 flex items-center gap-2"><i class="fas fa-info-circle w-5"></i>من نحن</a>
     <a href="#contact" @click="mobileMenu=false" class="text-gray-700 flex items-center gap-2"><i class="fas fa-phone w-5"></i>تواصل معنا</a>
     <a href="cart.html" class="bg-black text-white font-black py-3 rounded-xl text-center flex items-center justify-center gap-2">
@@ -117,7 +118,7 @@
       </p>
       <div class="flex gap-3 justify-center md:justify-start flex-wrap">
         <a href="#products" class="bg-green-500 hover:bg-green-600 text-black font-black px-7 py-3 rounded-full transition text-base md:text-lg">تسوق الآن 🛒</a>
-        <a href="#categories" class="border-2 border-white text-white hover:bg-white hover:text-black font-bold px-7 py-3 rounded-full transition text-base">الأقسام</a>
+        <a href="#products" class="border-2 border-white text-white hover:bg-white hover:text-black font-bold px-7 py-3 rounded-full transition text-base">المنتجات</a>
       </div>
       <div class="flex items-center gap-4 mt-7 text-xs text-gray-400 justify-center md:justify-start flex-wrap">
         <span><i class="fas fa-truck text-green-400 ml-1"></i>شحن سريع</span>
@@ -172,7 +173,22 @@
         <h2 class="text-2xl md:text-3xl font-black">— المنتجات —</h2>
         <div class="w-10 h-1 bg-green-500 mt-2 rounded"></div>
       </div>
+      <!-- Filter tabs فوق الجريد -->
+      <div class="flex gap-2 flex-wrap">
+        <button @click="activeFilter=''"
+          :class="activeFilter==='' ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200'"
+          class="px-4 py-1.5 rounded-full text-xs font-bold transition hover:border-green-400">
+          الكل
+        </button>
+        <template x-for="cat in categories.length ? categories : defaultCats.filter(c=>c.slug!=='')" :key="cat.slug||cat.id">
+          <button @click="activeFilter = cat.slug"
+            :class="activeFilter===cat.slug ? 'bg-green-500 text-black' : 'bg-white text-gray-600 border border-gray-200'"
+            class="px-4 py-1.5 rounded-full text-xs font-bold transition hover:border-green-400"
+            x-text="cat.name">
+          </button>
+        </template>
       </div>
+    </div>
 
     <!-- Skeletons -->
     <div x-show="loadingProds" class="product-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
@@ -196,11 +212,9 @@
           <div class="relative overflow-hidden h-44 md:h-52">
             <img :src="p.image_url || 'https://placehold.co/400x300/111/22c55e?text=👟'"
                  :alt="p.name" class="img-slide w-full h-full object-cover"/>
-            
             <template x-if="isNew(p)">
               <span class="absolute top-2 left-2 bg-black text-white text-xs font-bold px-2 py-0.5 rounded-full">جديد</span>
             </template>
-            <!-- Desktop hover btn -->
             <button @click.stop="addToCart(p)"
               class="hidden md:flex absolute bottom-0 left-0 right-0 bg-green-500 text-black font-black py-2 text-sm items-center justify-center gap-1 translate-y-full group-hover:translate-y-0 transition duration-300">
               <i class="fas fa-cart-plus"></i> أضف للسلة
@@ -210,7 +224,6 @@
             <h3 class="font-bold text-xs md:text-sm leading-snug mb-1 line-clamp-2" x-text="p.name"></h3>
             <div class="flex items-center gap-1.5 flex-wrap mb-2">
               <span class="font-black text-green-600 text-sm md:text-base" x-text="'EGP '+calcPrice(p)"></span>
-              
             </div>
             <button @click.stop="addToCart(p)"
               class="w-full bg-black text-white text-xs py-2 rounded-xl hover:bg-green-500 hover:text-black transition font-bold flex items-center justify-center gap-1 active:scale-95">
@@ -253,7 +266,7 @@
       <h3 class="font-black text-base md:text-lg mb-4 text-green-400">روابط سريعة</h3>
       <div class="flex flex-col gap-2 text-gray-400 text-sm">
         <a href="#products" class="hover:text-green-400 transition">المنتجات</a>
-        <a href="#categories" class="hover:text-green-400 transition">الأقسام</a>
+        <a href="#products" class="hover:text-green-400 transition">الأقسام</a>
         <a href="cart.html" class="hover:text-green-400 transition">السلة</a>
         <a href="#about" class="hover:text-green-400 transition">من نحن</a>
       </div>
@@ -276,7 +289,6 @@
       </div>
     </div>
   </div>
-  <!-- Social Icons Row (mobile) -->
   <div class="flex justify-center gap-5 mb-6 md:hidden">
     <a href="https://wa.me/201050805608" target="_blank" class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-black"><i class="fab fa-whatsapp text-lg"></i></a>
     <a href="https://instagram.com/monsters_store0" target="_blank" class="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white"><i class="fab fa-instagram text-lg"></i></a>
@@ -295,7 +307,7 @@
       <i class="fas fa-home text-lg"></i>
       <span class="text-xs font-bold">الرئيسية</span>
     </a>
-    <a href="#categories" class="flex flex-col items-center gap-0.5 text-gray-500">
+    <a href="#products" class="flex flex-col items-center gap-0.5 text-gray-500">
       <i class="fas fa-tags text-lg"></i>
       <span class="text-xs font-bold">الأقسام</span>
     </a>
@@ -311,7 +323,6 @@
     </a>
   </div>
 </div>
-<!-- Spacer for bottom nav on mobile -->
 <div class="h-16 md:hidden"></div>
 
 <!-- TOAST -->
@@ -333,6 +344,14 @@ function store() {
     mobileMenu: false,
     cartCount: 0,
     toast: false,
+
+    // فئات افتراضية لو الـ API مرجعتش فئات
+    defaultCats: [
+      { slug: '',          name: 'الكل',       emoji: '👟' },
+      { slug: 'sneakers',  name: 'كوتشيات',    emoji: '👟' },
+      { slug: 'slippers',  name: 'سليبرز',     emoji: '🥿' },
+      { slug: 'sports',    name: 'رياضي',      emoji: '⚽' },
+    ],
 
     async init() {
       this.cartCount = this.getCart().length;
@@ -370,12 +389,6 @@ function store() {
       if (!p.created_at) return false;
       return (Date.now() - new Date(p.created_at)) < 7*24*60*60*1000;
     },
-
-    getCatEmoji(slug) {
-      const map = { sneakers:'👟', slippers:'🥿', sports:'⚽' };
-      return map[slug] || '👠';
-    },
-
     filterByCategory(slug) {
       this.activeFilter = slug;
       document.getElementById('products').scrollIntoView({ behavior:'smooth' });
