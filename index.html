@@ -42,7 +42,7 @@
   <div class="marquee-inner">
     <span class="px-4">🚚 شحن لجميع المحافظات</span>
     <span class="px-4 text-green-400">|</span>
-    <span class="px-4">🎉 خصم 15% على أول طلب كود: <b class="text-green-400">MONSTERS15</b></span>
+    <span class="px-4"></span>خصومات حصرية <b class="text-green-400"></b></span>
     <span class="px-4 text-green-400">|</span>
     <span class="px-4">✅ جودة مضمونة 100%</span>
     <span class="px-4 text-green-400">|</span>
@@ -118,7 +118,7 @@
       </p>
       <div class="flex gap-3 justify-center md:justify-start flex-wrap">
         <a href="#products" class="bg-green-500 hover:bg-green-600 text-black font-black px-7 py-3 rounded-full transition text-base md:text-lg">تسوق الآن 🛒</a>
-        <a href="#products" class="border-2 border-white text-white hover:bg-white hover:text-black font-bold px-7 py-3 rounded-full transition text-base">المنتجات</a>
+        <a href="#products" class="border-2 border-white text-white hover:bg-white hover:text-black font-bold px-7 py-3 rounded-full transition text-base">الأقسام</a>
       </div>
       <div class="flex items-center gap-4 mt-7 text-xs text-gray-400 justify-center md:justify-start flex-wrap">
         <span><i class="fas fa-truck text-green-400 ml-1"></i>شحن سريع</span>
@@ -215,6 +215,9 @@
             <template x-if="isNew(p)">
               <span class="absolute top-2 left-2 bg-black text-white text-xs font-bold px-2 py-0.5 rounded-full">جديد</span>
             </template>
+            <template x-if="hasDiscount(p)">
+              <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-full" x-text="discountBadge(p)"></span>
+            </template>
             <button @click.stop="addToCart(p)"
               class="hidden md:flex absolute bottom-0 left-0 right-0 bg-green-500 text-black font-black py-2 text-sm items-center justify-center gap-1 translate-y-full group-hover:translate-y-0 transition duration-300">
               <i class="fas fa-cart-plus"></i> أضف للسلة
@@ -224,6 +227,9 @@
             <h3 class="font-bold text-xs md:text-sm leading-snug mb-1 line-clamp-2" x-text="p.name"></h3>
             <div class="flex items-center gap-1.5 flex-wrap mb-2">
               <span class="font-black text-green-600 text-sm md:text-base" x-text="'EGP '+calcPrice(p)"></span>
+              <template x-if="hasDiscount(p)">
+                <span class="text-gray-400 line-through text-xs" x-text="'EGP '+p.price"></span>
+              </template>
             </div>
             <button @click.stop="addToCart(p)"
               class="w-full bg-black text-white text-xs py-2 rounded-xl hover:bg-green-500 hover:text-black transition font-bold flex items-center justify-center gap-1 active:scale-95">
@@ -383,12 +389,34 @@ function store() {
       return this.products.filter(p => p.type === this.activeFilter);
     },
 
-    calcPrice(p) { return p.price; },
+    calcPrice(p) {
+      if (!p.discount_type || p.discount_type === 'none' || !p.discount_value) return p.price;
+      if (p.discount_type === 'amount')  return Math.max(p.price - p.discount_value, 0);
+      if (p.discount_type === 'percent') return Math.max(Math.round(p.price - (p.price * p.discount_value / 100)), 0);
+      return p.price;
+    },
+
+    hasDiscount(p) {
+      return p.discount_type && p.discount_type !== 'none' && p.discount_value > 0;
+    },
+
+    discountBadge(p) {
+      if (!this.hasDiscount(p)) return '';
+      if (p.discount_type === 'percent') return `-${p.discount_value}%`;
+      if (p.discount_type === 'amount')  return `-${p.discount_value} ج.م`;
+      return '';
+    },
 
     isNew(p) {
       if (!p.created_at) return false;
       return (Date.now() - new Date(p.created_at)) < 7*24*60*60*1000;
     },
+
+    getCatEmoji(slug) {
+      const map = { sneakers:'👟', slippers:'🥿', sports:'⚽' };
+      return map[slug] || '👠';
+    },
+
     filterByCategory(slug) {
       this.activeFilter = slug;
       document.getElementById('products').scrollIntoView({ behavior:'smooth' });
