@@ -172,6 +172,8 @@ function productPage() {
 
     init() {
       try { this.product = JSON.parse(localStorage.getItem('monsters_product') || '{}'); } catch {}
+      if (Array.isArray(this.product.sizes) && this.product.sizes.length) this.sizes = this.product.sizes;
+      if (Array.isArray(this.product.colors) && this.product.colors.length) this.colors = this.product.colors;
       this.cartCount = this.getCart().length;
     },
 

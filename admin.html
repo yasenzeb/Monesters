@@ -377,6 +377,16 @@ tbody td { padding: 12px 14px; vertical-align: middle; }
             </div>
             <div class="form-error" id="err-image"></div>
           </div>
+          <div class="form-group full">
+            <label>المقاسات المتاحة (افتراضي: 38,39,40,41,42,43,44,45)</label>
+            <input type="text" id="f-sizes" placeholder="38,39,40,41,42,43,44,45" dir="ltr">
+            <div class="form-error" id="err-sizes"></div>
+          </div>
+          <div class="form-group full">
+            <label>الألوان المتاحة (اختياري)</label>
+            <div class="colors-builder" id="f-colors-builder"></div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addColorRow('f-colors-builder')"><i class="fas fa-plus"></i> إضافة لون</button>
+          </div>
         </div>
         <div class="form-actions">
           <button class="btn btn-gold" onclick="submitAddProduct()" id="btn-add-submit"><i class="fas fa-save"></i> حفظ المنتج</button>
@@ -537,6 +547,16 @@ tbody td { padding: 12px 14px; vertical-align: middle; }
             <img class="upload-preview" id="edit-upload-preview" src="" alt="">
             <div class="upload-progress" id="edit-upload-progress"></div>
           </div>
+        </div>
+        <div class="form-group full">
+          <label>المقاسات المتاحة (افتراضي: 38,39,40,41,42,43,44,45)</label>
+          <input type="text" id="edit-sizes" placeholder="38,39,40,41,42,43,44,45" dir="ltr">
+          <div class="form-error" id="edit-err-sizes"></div>
+        </div>
+        <div class="form-group full">
+          <label>الألوان المتاحة (اختياري)</label>
+          <div class="colors-builder" id="edit-colors-builder"></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addColorRow('edit-colors-builder')"><i class="fas fa-plus"></i> إضافة لون</button>
         </div>
       </div>
       <div class="modal-actions">
@@ -947,6 +967,36 @@ function discountLabel(p) {
 
 function esc(s){ return String(s).replace(/`/g,'\\`').replace(/\$/g,'\\$'); }
 
+/* ══ SIZES / COLORS ══ */
+function parseSizes(str){
+  return (str||'').split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+}
+function addColorRow(containerId, name='', hex='#000000'){
+  const c=document.getElementById(containerId);
+  const row=document.createElement('div');
+  row.className='color-row';
+  row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:8px';
+  row.innerHTML=`
+    <input type="text" class="color-name" placeholder="اسم اللون" value="${esc(name)}" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Cairo',sans-serif;padding:8px 12px">
+    <input type="color" class="color-hex" value="${esc(hex)}" style="width:44px;height:38px;padding:2px;border-radius:8px;border:1px solid var(--border);background:var(--surface)">
+    <button type="button" class="btn btn-red btn-sm" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
+  c.appendChild(row);
+}
+function getColorsFromContainer(containerId){
+  const rows=document.querySelectorAll('#'+containerId+' .color-row');
+  const colors=[];
+  rows.forEach(r=>{
+    const name=r.querySelector('.color-name').value.trim();
+    const hex=r.querySelector('.color-hex').value;
+    if(name) colors.push({name,hex});
+  });
+  return colors;
+}
+function setColorsInContainer(containerId,colors){
+  document.getElementById(containerId).innerHTML='';
+  (colors||[]).forEach(c=>addColorRow(containerId,c.name,c.hex));
+}
+
 function badgeHTML(type){
   const cat=allCategories.find(c=>c.slug===type||c.id===type);
   const name=cat?cat.name:type;
@@ -1024,7 +1074,9 @@ async function submitAddProduct(){
       price:parseInt(document.getElementById('f-price').value),
       image_url:newProductImageUrl||null,
       discount_type:discountType,
-      discount_value:discountValue
+      discount_value:discountValue,
+      sizes:parseSizes(document.getElementById('f-sizes').value),
+      colors:getColorsFromContainer('f-colors-builder')
     });
     if(!data.success) throw new Error(data.error);
     toast('✓ تم إضافة المنتج بنجاح','success');
@@ -1039,6 +1091,8 @@ function resetAddForm(){
   document.getElementById('f-discount-type').value='none';
   document.getElementById('f-discount-value').style.display='none';
   document.getElementById('f-image').value='';
+  document.getElementById('f-sizes').value='';
+  document.getElementById('f-colors-builder').innerHTML='';
   const prev=document.getElementById('upload-preview'); prev.src=''; prev.style.display='none';
   newProductImageUrl=null;
   ['err-name','err-type','err-price'].forEach(id=>document.getElementById(id).textContent='');
@@ -1053,6 +1107,8 @@ function openEditModal(id){
   document.getElementById('edit-price').value=p.price;
   document.getElementById('edit-discount-type').value=p.discount_type||'none';
   document.getElementById('edit-discount-value').value=p.discount_value||'';
+  document.getElementById('edit-sizes').value=(Array.isArray(p.sizes)&&p.sizes.length)?p.sizes.join(','):'';
+  setColorsInContainer('edit-colors-builder', p.colors||[]);
   const prev=document.getElementById('edit-upload-preview');
   if(p.image_url){prev.src=p.image_url;prev.style.display='block';}else{prev.src='';prev.style.display='none';}
   document.getElementById('edit-modal').style.display='';
@@ -1076,7 +1132,9 @@ async function submitEditProduct(){
     const data=await api('PUT',`/api/products/${editingProductId}`,{
       name,type:document.getElementById('edit-type').value,
       price:parseInt(price),image_url:editProductImageUrl,
-      discount_type:discountType,discount_value:discountValue
+      discount_type:discountType,discount_value:discountValue,
+      sizes:parseSizes(document.getElementById('edit-sizes').value),
+      colors:getColorsFromContainer('edit-colors-builder')
     });
     if(!data.success) throw new Error(data.error);
     toast('✓ تم تحديث المنتج','success');

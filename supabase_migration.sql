@@ -9,6 +9,8 @@ CREATE TABLE products (
     image_url TEXT,
     discount_type TEXT NOT NULL DEFAULT 'none',
     discount_value NUMERIC NOT NULL DEFAULT 0,
+    sizes JSONB NOT NULL DEFAULT '[38,39,40,41,42,43,44,45]'::jsonb,
+    colors JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
