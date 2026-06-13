@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const { name, type, price, image_url, discount_type, discount_value } = req.body || {};
+      const { name, type, price, image_url, discount_type, discount_value, sizes, colors } = req.body || {};
       const updates = {};
 
       if (name          !== undefined) updates.name          = name;
@@ -46,6 +46,8 @@ export default async function handler(req, res) {
       if (discount_value !== undefined) {
         updates.discount_value = discount_type === 'none' ? 0 : parseFloat(discount_value) || 0;
       }
+      if (sizes  !== undefined) updates.sizes  = Array.isArray(sizes) && sizes.length ? sizes : [38,39,40,41,42,43,44,45];
+      if (colors !== undefined) updates.colors = Array.isArray(colors) ? colors : [];
 
       // If discount_type is 'none', always zero out the value
       if (updates.discount_type === 'none') {
