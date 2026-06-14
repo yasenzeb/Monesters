@@ -31,7 +31,18 @@ export default async function handler(req, res) {
 
       if (error) throw error;
       if (!data) return res.status(404).json({ success: false, error: 'Product not found.' });
-      return res.status(200).json({ success: true, product: data });
+
+      const product = {
+        ...data,
+        discount_type:    data.discount_type  || 'none',
+        discount_value:   data.discount_value || 0,
+        sizes:            Array.isArray(data.sizes) && data.sizes.length ? data.sizes : [38,39,40,41,42,43,44,45],
+        colors:           Array.isArray(data.colors) ? data.colors : [],
+        gallery:          Array.isArray(data.gallery) ? data.gallery : [],
+        main_image_index: data.main_image_index || 0
+      };
+
+      return res.status(200).json({ success: true, product });
     }
 
     if (req.method === 'PUT') {
