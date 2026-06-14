@@ -54,6 +54,9 @@
           <template x-for="g in govs"><option :value="g" x-text="g"></option></template>
         </select>
         <p x-show="errors.gov" class="text-red-500 text-xs mt-1">المحافظة مطلوبة</p>
+        <p x-show="form.gov" class="text-green-600 text-xs mt-2 font-bold">
+          <i class="fas fa-truck ml-1"></i> تكلفة الشحن لمحافظة <span x-text="form.gov"></span>: EGP <span x-text="shippingCost"></span>
+        </p>
       </div>
       <!-- Address -->
       <div class="mb-5">
@@ -113,11 +116,13 @@
         </div>
         <div class="border-t pt-4 space-y-2 text-sm">
           <div class="flex justify-between"><span class="text-gray-500">المجموع</span><span class="font-bold" x-text="'EGP '+subtotal"></span></div>
-          <div x-show="discount>0" class="flex justify-between text-green-600"><span>خصم</span><span x-text="'- EGP '+discount"></span></div>
-          <div class="flex justify-between"><span class="text-gray-500">الشحن</span><span class="text-green-600 font-bold">مجاني</span></div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">الشحن</span>
+            <span class="font-bold" x-text="form.gov ? ('EGP '+shippingCost) : 'حسب المحافظة'"></span>
+          </div>
           <div class="flex justify-between text-lg font-black border-t pt-2">
             <span>الإجمالي</span>
-            <span class="text-green-600" x-text="'EGP '+(subtotal-discount)"></span>
+            <span class="text-green-600" x-text="'EGP '+(subtotal+shippingCost)"></span>
           </div>
         </div>
       </div>
@@ -126,21 +131,54 @@
 </div>
 
 <script>
+// ── Shipping cost per governorate (EGP) ──
+const SHIPPING_RATES = {
+  'القاهرة': 70,
+  'الجيزة': 70,
+  'الإسكندرية': 90,
+  'الدقهلية': 90,
+  'البحر الأحمر': 155,
+  'البحيرة': 90,
+  'الفيوم': 105,
+  'الغربية': 90,
+  'الإسماعيلية': 95,
+  'المنوفية': 90,
+  'المنيا': 105,
+  'القليوبية': 90,
+  'الوادي الجديد': 155,
+  'السويس': 95,
+  'أسوان': 155,
+  'أسيوط': 105,
+  'بني سويف': 105,
+  'بورسعيد': 95,
+  'دمياط': 90,
+  'الشرقية': 90,
+  'جنوب سيناء': 155,
+  'كفر الشيخ': 90,
+  'مطروح': 155,
+  'الأقصر': 155,
+  'قنا': 155,
+  'شمال سيناء': 155,
+  'سوهاج': 105
+};
+
 function checkoutPage() {
   return {
     cart: [],
-    discount: 0,
     form: { name:'', phone:'', gov:'', address:'', notes:'', payment:'cod' },
     errors: { name:false, phone:false, gov:false, address:false },
     govs: ['القاهرة','الجيزة','الإسكندرية','الدقهلية','البحر الأحمر','البحيرة','الفيوم','الغربية','الإسماعيلية','المنوفية','المنيا','القليوبية','الوادي الجديد','السويس','أسوان','أسيوط','بني سويف','بورسعيد','دمياط','الشرقية','جنوب سيناء','كفر الشيخ','مطروح','الأقصر','قنا','شمال سيناء','سوهاج'],
 
     init() {
       try { this.cart = JSON.parse(localStorage.getItem('monsters_cart')||'[]'); } catch {}
-      this.discount = parseInt(localStorage.getItem('monsters_discount')||'0');
     },
 
     get subtotal() {
       return this.cart.reduce((s,i)=>s+(i.finalPrice||i.price)*(i.qty||1),0);
+    },
+
+    get shippingCost() {
+      return SHIPPING_RATES[this.form.gov] || 0;
     },
 
     validate() {
@@ -154,12 +192,12 @@ function checkoutPage() {
     submitOrder() {
       if (!this.validate()) return;
       const items = this.cart.map(i=>`• ${i.name} (مقاس: ${i.size||'-'}, لون: ${i.color||'-'}) × ${i.qty||1} = EGP ${(i.finalPrice||i.price)*(i.qty||1)}`).join('\n');
-      const total = this.subtotal - this.discount;
-      const msg = `🛒 *طلب جديد من MONSTERS*\n\n👤 الاسم: ${this.form.name}\n📱 الموبايل: ${this.form.phone}\n📍 المحافظة: ${this.form.gov}\n🏠 العنوان: ${this.form.address}\n💳 الدفع: ${this.form.payment==='cod'?'عند الاستلام':'تحويل إلكتروني'}\n${this.form.notes?'📝 ملاحظات: '+this.form.notes+'\n':''}\n📦 *المنتجات:*\n${items}\n\n💰 الإجمالي: EGP ${total}\n${this.discount?'🎁 خصم: EGP '+this.discount+'\n':''}\n✅ طلب عبر موقع MONSTERS Store`;
+      const shipping = this.shippingCost;
+      const total = this.subtotal + shipping;
+      const msg = `🛒 *طلب جديد من MONSTERS*\n\n👤 الاسم: ${this.form.name}\n📱 الموبايل: ${this.form.phone}\n📍 المحافظة: ${this.form.gov}\n🏠 العنوان: ${this.form.address}\n💳 الدفع: ${this.form.payment==='cod'?'عند الاستلام':'تحويل إلكتروني'}\n${this.form.notes?'📝 ملاحظات: '+this.form.notes+'\n':''}\n📦 *المنتجات:*\n${items}\n\n💰 المجموع: EGP ${this.subtotal}\n🚚 الشحن: EGP ${shipping}\n💵 الإجمالي: EGP ${total}\n\n✅ طلب عبر موقع MONSTERS Store`;
       const url = `h=${encodeURIComponent(msg)}`;
       localStorage.removeItem('monsters_cart');
-      localStorage.removeItem('monsters_discount');
-      localStorage.setItem('monsters_last_order', JSON.stringify({...this.form, total, items:this.cart}));
+      localStorage.setItem('monsters_last_order', JSON.stringify({...this.form, shipping, total, items:this.cart}));
       window.location.href = url;
     }
   }

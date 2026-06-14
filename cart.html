@@ -77,24 +77,10 @@
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-24">
         <h2 class="text-xl font-black mb-6 border-b pb-4">ملخص الطلب</h2>
 
-        <!-- Coupon -->
-        <div class="mb-4">
-          <p class="font-bold text-sm mb-2">كود خصم:</p>
-          <div class="flex gap-2">
-            <input x-model="coupon" type="text" placeholder="MONSTERS15" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-green-400"/>
-            <button @click="applyCoupon()" class="bg-black text-white font-bold px-4 py-2 rounded-xl hover:bg-green-500 hover:text-black transition text-sm">تطبيق</button>
-          </div>
-          <p x-show="couponMsg" :class="couponOk?'text-green-600':'text-red-500'" class="text-xs mt-1 font-bold" x-text="couponMsg"></p>
-        </div>
-
         <div class="space-y-3 text-sm mb-6">
           <div class="flex justify-between">
             <span class="text-gray-500">المجموع الفرعي</span>
             <span class="font-bold" x-text="'EGP '+subtotal"></span>
-          </div>
-          <div x-show="discount>0" class="flex justify-between text-green-600">
-            <span>خصم الكود</span>
-            <span class="font-bold" x-text="'- EGP '+discount"></span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500">الشحن</span>
@@ -102,7 +88,7 @@
           </div>
           <div class="border-t pt-3 flex justify-between text-xl font-black">
             <span>الإجمالي</span>
-            <span class="text-green-600" x-text="'EGP '+(subtotal-discount)"></span>
+            <span class="text-green-600" x-text="'EGP '+subtotal"></span>
           </div>
         </div>
 
@@ -127,10 +113,6 @@
 function cartPage() {
   return {
     cart: [],
-    coupon: '',
-    couponMsg: '',
-    couponOk: false,
-    discount: 0,
 
     init() {
       try { this.cart = JSON.parse(localStorage.getItem('monsters_cart')||'[]'); } catch { this.cart=[]; }
@@ -152,20 +134,6 @@ function cartPage() {
 
     save() {
       localStorage.setItem('monsters_cart', JSON.stringify(this.cart));
-    },
-
-    applyCoupon() {
-      const code = this.coupon.trim().toUpperCase();
-      if (code === 'MONSTERS15') {
-        this.discount = Math.round(this.subtotal*0.15);
-        this.couponMsg = '🎉 تم تطبيق خصم 15%!';
-        this.couponOk = true;
-        localStorage.setItem('monsters_discount', this.discount);
-      } else {
-        this.discount = 0;
-        this.couponMsg = '❌ كود غير صحيح';
-        this.couponOk = false;
-      }
     }
   }
 }

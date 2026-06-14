@@ -8,7 +8,14 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<style>* { font-family:'Cairo',sans-serif; } ::-webkit-scrollbar{width:6px} ::-webkit-scrollbar-thumb{background:#22c55e;border-radius:3px}</style>
+<style>
+* { font-family:'Cairo',sans-serif; }
+::-webkit-scrollbar{width:6px} ::-webkit-scrollbar-thumb{background:#22c55e;border-radius:3px}
+.thumb-active { border-color: #22c55e !important; }
+.main-img-wrap { transition: opacity .2s; }
+.thumb-img { transition: all .2s; cursor: pointer; }
+.thumb-img:hover { transform: scale(1.05); }
+</style>
 </head>
 <body class="bg-white text-black" x-data="productPage()" x-init="init()">
 
@@ -41,15 +48,29 @@
 <!-- PRODUCT DETAIL -->
 <section class="max-w-7xl mx-auto px-4 pb-16">
   <template x-if="product.id">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
-    <!-- Image -->
-    <div class="relative rounded-3xl overflow-hidden bg-gray-50 border border-gray-100">
-      <img :src="product.image_url || 'https://placehold.co/600x500/111/22c55e?text=MONSTERS'"
-           :alt="product.name" class="w-full object-cover" style="min-height:350px"/>
-      <template x-if="product.discount_type && product.discount_value">
-        <span class="absolute top-4 right-4 bg-green-500 text-black font-black px-4 py-2 rounded-full text-lg"
-          x-text="product.discount_type==='percent' ? '-'+product.discount_value+'%' : 'خصم'"></span>
-      </template>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+
+    <!-- IMAGE GALLERY -->
+    <div>
+      <!-- Main Image -->
+      <div class="relative rounded-3xl overflow-hidden bg-gray-50 border border-gray-100 mb-3 main-img-wrap" style="min-height:350px">
+        <img :src="activeImage || 'https://placehold.co/600x500/111/22c55e?text=MONSTERS'"
+             :alt="product.name" class="w-full object-cover" style="min-height:350px;max-height:480px;object-fit:contain"/>
+        <template x-if="product.discount_type && product.discount_value">
+          <span class="absolute top-4 right-4 bg-green-500 text-black font-black px-4 py-2 rounded-full text-lg"
+            x-text="product.discount_type==='percent' ? '-'+product.discount_value+'%' : 'خصم'"></span>
+        </template>
+      </div>
+      <!-- Thumbnails -->
+      <div x-show="allImages.length > 1" class="flex gap-2 flex-wrap">
+        <template x-for="(img, idx) in allImages" :key="idx">
+          <div @click="activeImage=img"
+               :class="activeImage===img ? 'thumb-active border-2' : 'border border-gray-200'"
+               class="thumb-img w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+            <img :src="img" :alt="'صورة '+(idx+1)" class="w-full h-full object-cover"/>
+          </div>
+        </template>
+      </div>
     </div>
 
     <!-- Info -->
@@ -82,7 +103,7 @@
       </div>
 
       <!-- Color -->
-      <div class="mb-6">
+      <div class="mb-6" x-show="colors.length > 0">
         <p class="font-black mb-3">اللون:</p>
         <div class="flex gap-3 flex-wrap">
           <template x-for="c in colors">
@@ -161,19 +182,31 @@ function productPage() {
     toast: false,
     cartCount: 0,
     sizes: [38,39,40,41,42,43,44,45],
-    colors: [
-      {name:'أسود',hex:'#000'},
-      {name:'أبيض',hex:'#fff'},
-      {name:'أخضر',hex:'#22c55e'},
-      {name:'رمادي',hex:'#9ca3af'},
-      {name:'بيج',hex:'#d2b48c'},
-      {name:'كحلي',hex:'#1e3a5f'},
-    ],
+    colors: [],
+    activeImage: '',
+    allImages: [],
 
     init() {
       try { this.product = JSON.parse(localStorage.getItem('monsters_product') || '{}'); } catch {}
-      if (Array.isArray(this.product.sizes) && this.product.sizes.length) this.sizes = this.product.sizes;
-      if (Array.isArray(this.product.colors) && this.product.colors.length) this.colors = this.product.colors;
+
+      if (Array.isArray(this.product.sizes) && this.product.sizes.length)
+        this.sizes = this.product.sizes;
+      if (Array.isArray(this.product.colors) && this.product.colors.length)
+        this.colors = this.product.colors;
+
+      // Build image list from gallery + main image
+      const gallery = Array.isArray(this.product.gallery) ? this.product.gallery.filter(Boolean) : [];
+      const mainImg = this.product.image_url || null;
+
+      // Build unique ordered list: main image first, then others
+      const seen = new Set();
+      const imgs = [];
+      if (mainImg) { imgs.push(mainImg); seen.add(mainImg); }
+      gallery.forEach(u => { if (u && !seen.has(u)) { imgs.push(u); seen.add(u); } });
+
+      this.allImages = imgs;
+      this.activeImage = imgs[0] || 'https://placehold.co/600x500/111/22c55e?text=MONSTERS';
+
       this.cartCount = this.getCart().length;
     },
 
