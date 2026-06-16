@@ -28,7 +28,6 @@
   </div>
 </nav>
 
-<!-- FORM -->
 <div x-show="!orderDone" class="max-w-5xl mx-auto px-4 py-10">
   <h1 class="text-3xl font-black mb-8">
     <i class="fas fa-map-marker-alt text-green-500 ml-2"></i>بيانات التوصيل
@@ -142,7 +141,6 @@
   </div>
 </div>
 
-<!-- SUCCESS -->
 <div x-show="orderDone" x-transition class="max-w-lg mx-auto px-4 py-20 text-center">
   <div class="bg-white rounded-3xl p-10 shadow-lg border border-gray-100">
     <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -231,6 +229,27 @@ function checkoutPage() {
         shipping,
         total
       };
+
+      // 1. تحضير نص الرسالة المنظم لتطبيق ntfy
+      const itemsListText = payload.items.map(i => `- ${i.name} (كمية: ${i.qty}) ${i.size ? '[مقاس: ' + i.size + ']' : ''}`).join('\n');
+      const ntfyMessage = `👤 العميل: ${payload.name}\n📞 الهاتف: ${payload.phone}\n📍 المحافظة: ${payload.gov}\n🏠 العنوان: ${payload.address}\n📝 ملاحظات: ${payload.notes || 'لا يوجد'}\n\n📦 المنتجات:\n${itemsListText}\n\n💰 الإجمالي: EGP ${payload.total}`;
+
+      try {
+        // 2. إرسال الإشعار الفوري إلى ntfy
+        // تنبيه: قم بتغيير 'monsters_orders_topic' إلى اسم التوبيك الخاص بك في تطبيق ntfy لضمان الخصوصية.
+        await fetch('https://ntfy.sh/monsters_orders_topic', {
+          method: 'POST',
+          body: ntfyMessage,
+          headers: {
+            'Title': '🛒 طلب جديد من الموقع!',
+            'Priority': 'high',
+            'Tags': 'shopping_bags,moneybag'
+          }
+        });
+      } catch (ntfyErr) {
+        console.error('فشل إرسال إشعار ntfy:', ntfyErr);
+        // تم وضعها داخل try/catch منفصل لضمان استمرار عملية تسجيل الطلب الأساسية حتى لو حدثت مشكلة في شبكة ntfy
+      }
 
       try {
         const res  = await fetch('/api/order', {
