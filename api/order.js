@@ -5,7 +5,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const NTFY_TOPIC = 'monsters-orders-x7k2'; // غيّره لأي اسم سري تحبه
+const NTFY_TOPIC = 'monsters-orders-x7k2';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,15 +20,12 @@ export default async function handler(req, res) {
   try {
     const { name, phone, gov, address, notes, payment, items, subtotal, shipping, total } = req.body;
 
-    // ── Validation ──
     if (!name || !phone || !gov || !address || !items?.length) {
       return res.status(400).json({ success: false, error: 'بيانات ناقصة' });
     }
 
-    // ── Order Number ──
     const orderNumber = 'ORD-' + Date.now().toString().slice(-6);
 
-    // ── Save to Supabase ──
     const { data: order, error } = await supabase
       .from('orders')
       .insert([{
@@ -51,41 +48,29 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    // ── Build ntfy message ──
     const paymentLabel = payment === 'cod' ? 'دفع عند الاستلام' : 'تحويل إلكتروني';
 
     const itemsList = items
-      .map(i => `• ${i.name}${i.size ? ' (مقاس: ' + i.size + ')' : ''}${i.color ? ' - ' + i.color : ''} × ${i.qty || 1} = EGP ${(i.finalPrice || i.price) * (i.qty || 1)}`)
+      .map(i => `- ${i.name}${i.size ? ' (مقاس: ' + i.size + ')' : ''} x${i.qty || 1} = EGP ${(i.finalPrice || i.price) * (i.qty || 1)}`)
       .join('\n');
 
-    const message = [
-      `👤 ${name}`,
-      `📱 ${phone}`,
-      `📍 ${gov} — ${address}`,
-      `💳 ${paymentLabel}`,
-      notes ? `📝 ${notes}` : null,
-      ``,
-      `📦 المنتجات:`,
-      itemsList,
-      ``,
-      `💰 المجموع: EGP ${subtotal}`,
-      `🚚 الشحن:   EGP ${shipping}`,
-      `✅ الإجمالي: EGP ${total}`
-    ].filter(line => line !== null).join('\n');
+    const message = `👤 ${name}\n📱 ${phone}\n📍 ${gov} - ${address}\n💳 ${paymentLabel}${notes ? '\n📝 ' + notes : ''}\n\n📦 المنتجات:\n${itemsList}\n\n💰 المجموع: EGP ${subtotal}\n🚚 الشحن: EGP ${shipping}\n✅ الاجمالي: EGP ${total}`;
 
-    // ── Send ntfy notification (non-blocking) ──
-    fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
-      method: 'POST',
-      body:   message,
-      headers: {
-        'Title':    `🛒 طلب جديد #${orderNumber} — ${name}`,
-        'Priority': 'high',
-        'Tags':     'shopping_cart,moneybag',
-        'Content-Type': 'text/plain; charset=utf-8'
-      }
-    }).catch(err => console.error('[ntfy error]', err));
+    try {
+      await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+        method: 'POST',
+        body: message,
+        headers: {
+          'Title': `طلب جديد #${orderNumber} - ${name}`,
+          'Priority': 'high',
+          'Tags': 'shopping_cart',
+          'Content-Type': 'text/plain'
+        }
+      });
+    } catch (ntfyErr) {
+      console.error('[ntfy error]', ntfyErr);
+    }
 
-    // ── Response ──
     return res.status(201).json({
       success: true,
       order: {
