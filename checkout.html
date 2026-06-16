@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MONSTERS - إتمام الطلب</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght=300;400;700;900&display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -27,15 +27,16 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
     <div class="lg:col-span-3 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      
       <div class="mb-5">
         <label class="font-bold text-sm mb-2 block">الاسم الكامل *</label>
-        <input x-model="form.name" type="text" class="w-full border rounded-xl px-4 py-3 text-sm"/>
+        <input x-model="form.name" type="text" placeholder="محمد أحمد" class="w-full border rounded-xl px-4 py-3 text-sm"/>
         <p x-show="errors.name" class="text-red-500 text-xs mt-1">الاسم مطلوب</p>
       </div>
 
       <div class="mb-5">
         <label class="font-bold text-sm mb-2 block">رقم الموبايل *</label>
-        <input x-model="form.phone" type="tel" class="w-full border rounded-xl px-4 py-3 text-sm" dir="ltr"/>
+        <input x-model="form.phone" type="tel" placeholder="01xxxxxxxxx" class="w-full border rounded-xl px-4 py-3 text-sm" dir="ltr"/>
         <p x-show="errors.phone" class="text-red-500 text-xs mt-1">رقم الهاتف مطلوب</p>
       </div>
 
@@ -50,14 +51,14 @@
 
       <div class="mb-5">
         <label class="font-bold text-sm mb-2 block">العنوان بالتفصيل *</label>
-        <textarea x-model="form.address" rows="3" class="w-full border rounded-xl px-4 py-3 text-sm resize-none"></textarea>
+        <textarea x-model="form.address" rows="3" placeholder="الشارع، المدينة، علامة مميزة..." class="w-full border rounded-xl px-4 py-3 text-sm resize-none"></textarea>
         <p x-show="errors.address" class="text-red-500 text-xs mt-1">العنوان مطلوب</p>
       </div>
 
       <button @click="submitOrder()" :disabled="submitting"
-        class="w-full bg-green-500 text-black font-black py-4 rounded-2xl text-xl flex items-center justify-center gap-2">
+        class="w-full bg-green-500 text-black font-black py-4 rounded-2xl text-xl flex items-center justify-center gap-2 disabled:opacity-50">
         <span x-show="!submitting">تأكيد الطلب</span>
-        <span x-show="submitting">جارٍ الإرسال...</span>
+        <span x-show="submitting">جاري إرسال طلبك...</span>
       </button>
     </div>
 
@@ -85,16 +86,13 @@
   </div>
 </div>
 
-<!-- عنصر مخفي لإرسال الطلب من خلاله لتفادي شاشات الحظر وبدون فتح نافذة جديدة -->
-<iframe id="ntfy_sender" name="ntfy_sender" style="display:none;"></iframe>
-
 <script>
 const SHIPPING_RATES = {'القاهرة':70,'الجيزة':70,'الإسكندرية':90,'الشرقية':90,'الدقهلية':90};
 
 function checkoutPage() {
   return {
     cart: [],
-    form: { name:'', phone:'', gov:'', address:'', notes:'', payment:'cod' },
+    form: { name:'', phone:'', gov:'', address:'' },
     errors: { name:false, phone:false, gov:false, address:false },
     govs: Object.keys(SHIPPING_RATES),
     submitting: false,
@@ -104,7 +102,7 @@ function checkoutPage() {
     init() {
       try { this.cart = JSON.parse(localStorage.getItem('monsters_cart')||'[]'); } catch {}
       if (!this.cart.length) {
-        this.cart = [{ id: 'test', name: 'منتج تجريبي نشط', price: 450, qty: 1 }];
+        this.cart = [{ id: 'test_item', name: 'التجريبي', price: 550, qty: 1 }];
       }
     },
 
@@ -119,21 +117,33 @@ function checkoutPage() {
       const itemsText = this.cart.map(i => `- ${i.name} (كمية: ${i.qty||1})`).join('\n');
       const message = `👤 الاسم: ${this.form.name}\n📞 الهاتف: ${this.form.phone}\n📍 المحافظة: ${this.form.gov}\n🏠 العنوان: ${this.form.address}\n\n📦 الطلبات:\n${itemsText}`;
 
+      // إعداد بيانات الإرسال لـ Pushover API
+      const pUserKey  = 'uvzzjchk27ebj1dpnzahrqpnzgsqeg'; // الكود الخاص بك جاهز تلقائياً
+      const pApiToken = 'akb2ymien31hkq7i63mw9or1pgwszo';         // <-- ضع هنا الـ API Token الذي ظهر لك الآن
+
+      const formData = new FormData();
+      formData.append('token', pApiToken);
+      formData.append('user', pUserKey);
+      formData.append('title', '🛒 طلب جديد لـ MONSTERS!');
+      formData.append('message', message);
+      formData.append('priority', '1'); 
+      formData.append('sound', 'cashregister'); // نغمة ماكينة الكاشير
+
       try {
-        const encodedMsg = encodeURIComponent(message);
-        const encodedTitle = encodeURIComponent('🛒 طلب جديد!');
-        const ntfyUrl = `https://ntfy.sh/monsters-orders-x7k2?m=${encodedMsg}&t=${encodedTitle}&p=high`;
+        await fetch('https://api.pushover.net/1/messages.json', {
+          method: 'POST',
+          body: formData
+        });
+        console.log('Notification sent successfully!');
+      } catch (err) {
+        console.error('Pushover Error:', err);
+      }
 
-        // إرسال عبر الـ iframe المخفي عشان الإرسال يحصل تماماً في الخلفية
-        document.getElementById('ntfy_sender').src = ntfyUrl;
-      } catch (err) {}
-
-      setTimeout(() => {
-        localStorage.removeItem('monsters_cart');
-        this.orderNumber = 'M-' + Math.floor(100000 + Math.random() * 900000);
-        this.orderDone = true;
-        this.submitting = false;
-      }, 800); // تأخير بسيط لضمان خروج الأكشن للـ iframe
+      // الانتقال لصفحة النجاح
+      localStorage.removeItem('monsters_cart');
+      this.orderNumber = 'M-' + Math.floor(100000 + Math.random() * 900000);
+      this.orderDone = true;
+      this.submitting = false;
     }
   };
 }
