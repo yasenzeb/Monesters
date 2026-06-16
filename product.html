@@ -91,30 +91,29 @@
 
       <!-- Size -->
       <div class="mb-6">
-        <p class="font-black mb-3">المقاس: <span class="text-red-500">*</span></p>
+        <p class="font-black mb-3">المقاس:</p>
         <div class="flex gap-2 flex-wrap">
           <template x-for="s in sizes">
-            <button @click="selectedSize=s; sizeError=false"
+            <button @click="selectedSize=s"
               :class="selectedSize===s ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300'"
               class="w-12 h-12 rounded-xl border-2 font-bold hover:border-black transition text-sm" x-text="s"></button>
           </template>
         </div>
-        <p x-show="sizeError" class="text-red-500 text-sm mt-2 font-bold">⚠️ المقاس مطلوب — اختار مقاسك الأول</p>
+        <p x-show="sizeError" class="text-red-500 text-sm mt-2 font-bold">⚠️ اختار المقاس الأول</p>
       </div>
 
       <!-- Color -->
       <div class="mb-6" x-show="colors.length > 0">
-        <p class="font-black mb-3">اللون: <span class="text-red-500">*</span></p>
+        <p class="font-black mb-3">اللون:</p>
         <div class="flex gap-3 flex-wrap">
           <template x-for="c in colors">
-            <button @click="selectedColor=c.name; colorError=false"
+            <button @click="selectedColor=c.name"
               :style="'background:'+c.hex"
               :class="selectedColor===c.name ? 'ring-4 ring-green-400 ring-offset-2 scale-110' : ''"
               class="w-8 h-8 rounded-full border border-gray-200 transition-all" :title="c.name"></button>
           </template>
         </div>
         <p x-show="selectedColor" class="text-sm text-gray-500 mt-2" x-text="'اللون المختار: '+selectedColor"></p>
-        <p x-show="colorError" class="text-red-500 text-sm mt-2 font-bold">⚠️ اللون مطلوب — اختار لونك الأول</p>
       </div>
 
       <!-- Qty -->
@@ -180,7 +179,6 @@ function productPage() {
     selectedSize: '',
     selectedColor: '',
     sizeError: false,
-    colorError: false,
     toast: false,
     cartCount: 0,
     sizes: [38,39,40,41,42,43,44,45],
@@ -209,7 +207,7 @@ function productPage() {
       this.allImages = imgs;
       this.activeImage = imgs[0] || 'https://placehold.co/600x500/111/22c55e?text=MONSTERS';
 
-      this.cartCount = this.getCart().reduce((acc, c) => acc + (c.qty || 1), 0);
+      this.cartCount = this.getCart().length;
     },
 
     calcPrice() {
@@ -228,32 +226,23 @@ function productPage() {
       try { return JSON.parse(localStorage.getItem('monsters_cart')||'[]'); } catch { return []; }
     },
 
-    // لازم يختار مقاس دايمًا، ولازم يختار لون لو المنتج عنده ألوان متاحة
-    validateSelections() {
-      this.sizeError = !this.selectedSize;
-      this.colorError = this.colors.length > 0 && !this.selectedColor;
-      return !this.sizeError && !this.colorError;
-    },
-
     addToCart() {
-      if (!this.validateSelections()) return false;
+      if (!this.selectedSize) { this.sizeError=true; return; }
+      this.sizeError = false;
       const cart = this.getCart();
-      const key = this.product.id+'_'+this.selectedSize+'_'+(this.selectedColor||'');
+      const key = this.product.id+'_'+this.selectedSize+'_'+this.selectedColor;
       const idx = cart.findIndex(i=>i._key===key);
       const item = {...this.product, qty:this.qty, size:this.selectedSize, color:this.selectedColor, _key:key, finalPrice:this.calcPrice()};
       if(idx>-1) cart[idx].qty += this.qty;
       else cart.push(item);
       localStorage.setItem('monsters_cart', JSON.stringify(cart));
-      this.cartCount = cart.reduce((acc, c) => acc + (c.qty || 1), 0);
+      this.cartCount = cart.length;
       this.toast=true; setTimeout(()=>this.toast=false,2500);
-      return true;
     },
 
-    // اشتري الآن: نفس فحص المقاس واللون، ثم تحويل مباشر لصفحة الشيك أوت (بالاسم واللون والمقاس جاهزين في السلة)
     buyNow() {
-      if (this.addToCart()) {
-        window.location.href = 'checkout.html';
-      }
+      this.addToCart();
+      if(this.selectedSize) window.location.href='cart.html';
     }
   }
 }

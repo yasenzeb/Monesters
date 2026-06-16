@@ -29,16 +29,6 @@
 <div class="max-w-5xl mx-auto px-4 py-10">
   <h1 class="text-3xl font-black mb-8"><i class="fas fa-map-marker-alt text-green-500 ml-2"></i>بيانات التوصيل</h1>
 
-  <!-- لو السلة فاضية -->
-  <template x-if="cart.length===0">
-    <div class="text-center py-20 bg-white rounded-2xl border border-gray-100">
-      <i class="fas fa-cart-arrow-down text-5xl text-gray-200 mb-4 block"></i>
-      <p class="text-xl font-bold mb-4">السلة فاضية، رجّع اختار منتج الأول</p>
-      <a href="index.html" class="bg-black text-white font-black px-8 py-3 rounded-full hover:bg-green-500 hover:text-black transition">تسوق الآن</a>
-    </div>
-  </template>
-
-  <template x-if="cart.length>0">
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
     <!-- Form -->
     <div class="lg:col-span-3 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -101,14 +91,11 @@
         </div>
       </div>
 
-      <p x-show="submitError" class="text-red-500 text-sm font-bold mb-3 text-center" x-text="submitError"></p>
-
-      <button @click="submitOrder()" :disabled="submitting"
-        class="w-full bg-green-500 text-black font-black py-4 rounded-2xl hover:bg-green-600 transition text-xl flex items-center justify-center gap-2 disabled:opacity-60">
-        <i :class="submitting ? 'fa-spinner fa-spin' : 'fa-check-circle'" class="fas text-2xl"></i>
-        <span x-text="submitting ? 'جارٍ تأكيد الطلب...' : 'تأكيد الطلب'"></span>
+      <button @click="submitOrder()"
+        class="w-full bg-green-500 text-black font-black py-4 rounded-2xl hover:bg-green-600 transition text-xl flex items-center justify-center gap-2">
+        <i class="fab fa-whatsapp text-2xl"></i> تأكيد الطلب عبر واتساب
       </button>
-      <p class="text-center text-xs text-gray-400 mt-3">طلبك يتسجل فورًا، وهنبدأ في تجهيزه على طول</p>
+      <p class="text-center text-xs text-gray-400 mt-3">سيتم إرسال تفاصيل طلبك عبر واتساب لتأكيده</p>
     </div>
 
     <!-- Order summary -->
@@ -121,7 +108,7 @@
               <img :src="item.image_url||'https://placehold.co/50x50/111/22c55e?text=M'" class="w-12 h-12 rounded-xl object-cover flex-shrink-0"/>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-bold truncate" x-text="item.name"></p>
-                <p class="text-xs text-gray-400" x-text="(item.size?'مقاس '+item.size+' ':'')+(item.color?'لون '+item.color+' ':'')+('× '+(item.qty||1))"></p>
+                <p class="text-xs text-gray-400" x-text="(item.size?'مقاس '+item.size+' ':'')+('× '+(item.qty||1))"></p>
               </div>
               <span class="font-black text-sm" x-text="'EGP '+((item.finalPrice||item.price)*(item.qty||1))"></span>
             </div>
@@ -141,7 +128,6 @@
       </div>
     </div>
   </div>
-  </template>
 </div>
 
 <script>
@@ -181,8 +167,6 @@ function checkoutPage() {
     cart: [],
     form: { name:'', phone:'', gov:'', address:'', notes:'', payment:'cod' },
     errors: { name:false, phone:false, gov:false, address:false },
-    submitting: false,
-    submitError: '',
     govs: ['القاهرة','الجيزة','الإسكندرية','الدقهلية','البحر الأحمر','البحيرة','الفيوم','الغربية','الإسماعيلية','المنوفية','المنيا','القليوبية','الوادي الجديد','السويس','أسوان','أسيوط','بني سويف','بورسعيد','دمياط','الشرقية','جنوب سيناء','كفر الشيخ','مطروح','الأقصر','قنا','شمال سيناء','سوهاج'],
 
     init() {
@@ -205,46 +189,16 @@ function checkoutPage() {
       return !Object.values(this.errors).some(Boolean);
     },
 
-    // الطلب يتسجل مباشرة في قاعدة البيانات (Supabase) عن طريق /api/orders
-    // ومفيش أي تحويل للعميل على واتساب أو أي حاجة تانية — العميل يشوف فقط شاشة "تم استلام طلبك"
-    async submitOrder() {
-      if (this.cart.length === 0) return;
+    submitOrder() {
       if (!this.validate()) return;
-
-      this.submitting = true;
-      this.submitError = '';
-
-      try {
-        const payload = {
-          name: this.form.name,
-          phone: this.form.phone,
-          gov: this.form.gov,
-          address: this.form.address,
-          notes: this.form.notes,
-          payment: this.form.payment,
-          items: this.cart,
-          subtotal: this.subtotal,
-          shipping: this.shippingCost,
-          total: this.subtotal + this.shippingCost
-        };
-
-        const res = await fetch('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'فشل إرسال الطلب، حاول تاني');
-
-        localStorage.setItem('monsters_last_order', JSON.stringify(data.order));
-        localStorage.removeItem('monsters_cart');
-        window.location.href = `success.html?order=${encodeURIComponent(data.order.order_number)}`;
-
-      } catch (err) {
-        this.submitError = err.message || 'حصل خطأ غير متوقع، حاول تاني';
-      } finally {
-        this.submitting = false;
-      }
+      const items = this.cart.map(i=>`• ${i.name} (مقاس: ${i.size||'-'}, لون: ${i.color||'-'}) × ${i.qty||1} = EGP ${(i.finalPrice||i.price)*(i.qty||1)}`).join('\n');
+      const shipping = this.shippingCost;
+      const total = this.subtotal + shipping;
+      const msg = `🛒 *طلب جديد من MONSTERS*\n\n👤 الاسم: ${this.form.name}\n📱 الموبايل: ${this.form.phone}\n📍 المحافظة: ${this.form.gov}\n🏠 العنوان: ${this.form.address}\n💳 الدفع: ${this.form.payment==='cod'?'عند الاستلام':'تحويل إلكتروني'}\n${this.form.notes?'📝 ملاحظات: '+this.form.notes+'\n':''}\n📦 *المنتجات:*\n${items}\n\n💰 المجموع: EGP ${this.subtotal}\n🚚 الشحن: EGP ${shipping}\n💵 الإجمالي: EGP ${total}\n\n✅ طلب عبر موقع MONSTERS Store`;
+      const url = `h=${encodeURIComponent(msg)}`;
+      localStorage.removeItem('monsters_cart');
+      localStorage.setItem('monsters_last_order', JSON.stringify({...this.form, shipping, total, items:this.cart}));
+      window.location.href = url;
     }
   }
 }
