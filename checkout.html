@@ -28,7 +28,6 @@
   </div>
 </nav>
 
-<!-- FORM -->
 <div x-show="!orderDone" class="max-w-5xl mx-auto px-4 py-10">
   <h1 class="text-3xl font-black mb-8">
     <i class="fas fa-map-marker-alt text-green-500 ml-2"></i>بيانات التوصيل
@@ -105,7 +104,6 @@
       <p x-show="submitError" class="text-red-500 text-sm mt-3 text-center font-bold" x-text="submitError"></p>
     </div>
 
-    <!-- SUMMARY -->
     <div class="lg:col-span-2">
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-24">
         <h2 class="font-black text-lg mb-4 border-b pb-3">ملخص الطلب</h2>
@@ -116,13 +114,8 @@
                 class="w-12 h-12 rounded-xl object-cover flex-shrink-0"/>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-bold truncate" x-text="item.name"></p>
-                <div class="text-xs text-gray-400 mt-0.5">
-                  <span x-show="item.size" x-text="'مقاس ' + item.size"></span>
-                  <span class="mx-1" x-show="item.size && item.color">|</span>
-                  <span x-show="item.color" x-text="'لون ' + item.color"></span>
-                  <span class="mx-1">×</span>
-                  <span x-text="item.qty||1"></span>
-                </div>
+                <p class="text-xs text-gray-400"
+                  x-text="(item.size?'مقاس '+item.size+' ':'') + (item.color?'| لون '+item.color+' ':'') + ('× '+(item.qty||1))"></p>
               </div>
               <span class="font-black text-sm"
                 x-text="'EGP '+((item.finalPrice||item.price)*(item.qty||1))"></span>
@@ -148,7 +141,6 @@
   </div>
 </div>
 
-<!-- SUCCESS -->
 <div x-show="orderDone" x-transition class="max-w-lg mx-auto px-4 py-20 text-center">
   <div class="bg-white rounded-3xl p-10 shadow-lg border border-gray-100">
     <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -192,8 +184,9 @@ function checkoutPage() {
     init() {
       try { this.cart = JSON.parse(localStorage.getItem('monsters_cart')||'[]'); } catch {}
       
+      // لتخطي حماية السلة أثناء التجربة على الدومين غير الآمن
       if (!this.cart.length) {
-        this.cart = [{ id: 'test_item', name: 'منتج تجريبي نشط لموقع الوحوش', price: 500, qty: 1, size: '42', color: 'أسود' }];
+        this.cart = [{ id: 'test_item', name: 'منتج تجريبي نشط لموقع الوحوش', price: 500, qty: 1, size: 'XL', color: 'أسود بديل غامق' }];
       }
     },
 
@@ -220,54 +213,47 @@ function checkoutPage() {
 
       const shipping = this.shippingCost;
       const total    = this.subtotal + shipping;
-      
-      // توليد رقم طلب عشوائي مسبقاً لتضمينه في رسالة الإشعارات
+
+      // توليد رقم الطلب مسبقاً لإرساله بداخل تفاصيل الرسالة
       this.orderNumber = 'M-' + Math.floor(100000 + Math.random() * 900000);
 
-      // صياغة تفاصيل المنتجات مع المقاس واللون بدقة داخل الرسالة
+      // تجميع النص مع دعم المقاس واللون بدقة بالغة
       const itemsText = this.cart.map(i => {
         let details = [];
         if (i.size) details.push(`مقاس: ${i.size}`);
         if (i.color) details.push(`لون: ${i.color}`);
         const detailsStr = details.length ? ` [${details.join(' - ')}]` : '';
-        return `- ${i.name}${detailsStr} (الكمية: ${i.qty||1})`;
+        return `- ${i.name}${detailsStr} (كمية: ${i.qty||1})`;
       }).join('\n');
 
       const paymentMethod = this.form.payment === 'cod' ? 'الدفع عند الاستلام' : 'تحويل إلكتروني';
 
-      const message = `🆔 رقم الطلب: ${this.orderNumber}\n👤 الاسم: ${this.form.name.trim()}\n📞 الهاتف: ${this.form.phone.trim()}\n📍 المحافظة: ${this.form.gov}\n🏠 العنوان: ${this.form.address.trim()}\n💳 طريقة الدفع: ${paymentMethod}\n📝 ملاحظات: ${this.form.notes.trim() || 'لا يوجد'}\n\n📦 المنتجات المطلوبة:\n${itemsText}\n\n💰 إجمالي حساب العميل: EGP ${total}`;
+      const message = `🆔 رقم الطلب: ${this.orderNumber}\n👤 الاسم: ${this.form.name.trim()}\n📞 الهاتف: ${this.form.phone.trim()}\n📍 المحافظة: ${this.form.gov}\n🏠 العنوان: ${this.form.address.trim()}\n💳 طريقة الدفع: ${paymentMethod}\n📝 ملاحظات: ${this.form.notes.trim() || 'لا يوجد'}\n\n📦 الطلبات:\n${itemsText}\n\n💰 الإجمالي: EGP ${total}`;
 
-      // إعداد بيانات الإرسال لـ Pushover API الخاصة بك
+      // إعدادات Pushover الخاص بك
       const pUserKey  = 'uvzzjchk27ebj1dpnzahrqpnzgsqeg'; 
-      const pApiToken = 'akb2ymien31hkq7i63mw9or1pgwszo';      
+      const pApiToken = 'akb2ymien31hkq7i63mw9or1pgwszo'; 
 
       const formData = new FormData();
       formData.append('token', pApiToken);
       formData.append('user', pUserKey);
-      formData.append('title', '🛒 طلب جديد لـ MONSTERS!');
+      formData.append('title', '🛒 طلب جديد من الموقع!');
       formData.append('message', message);
-      formData.append('priority', '1'); 
-      formData.append('sound', 'cashregister'); 
+      formData.append('priority', '1');
+      formData.append('sound', 'cashregister');
 
       try {
-        const response = await fetch('https://api.pushover.net/1/messages.json', {
+        await fetch('https://api.pushover.net/1/messages.json', {
           method: 'POST',
           body: formData
         });
-        
-        if (!response.ok) {
-          throw new Error('فشل في إرسال الإشعار الخارجي');
-        }
-        
-        console.log('Notification sent successfully via Pushover!');
       } catch (err) {
-        console.error('Pushover Error:', err);
-        // في حالة حدوث مشكلة في الشبكة، لا يتم تعطيل تجربة العميل بل يكمل لصفحة النجاح
+        console.error('خطأ الإرسال:', err);
       }
 
-      // إتمام الخطوات بالواجهة ومسح السلة 
+      // إتمام الخطوات بالواجهة ومسح السلة الوهمية
       localStorage.removeItem('monsters_cart');
-      this.orderDone  = true;
+      this.orderDone   = true;
       this.submitting  = false;
     }
   };
