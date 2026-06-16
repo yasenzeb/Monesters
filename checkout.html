@@ -8,7 +8,17 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<style>* { font-family:'Cairo',sans-serif; }</style>
+<style>
+  /* تطبيق الخط على جميع الكلمات والعناصر */
+  *, html, body, input, textarea, select, button, span, p, div, h1, h2, a { 
+    font-family: 'Cairo', sans-serif !important; 
+  }
+  /* استثناء الأيقونات لضمان ظهورها بشكل سليم وعدم اختفائها */
+  .fas, .far, .fab, i {
+    font-family: 'Font Awesome 5 Free' !important;
+    font-weight: 900 !important;
+  }
+</style>
 </head>
 <body class="bg-gray-50 text-black" x-data="checkoutPage()" x-init="init()">
 
@@ -184,9 +194,8 @@ function checkoutPage() {
     init() {
       try { this.cart = JSON.parse(localStorage.getItem('monsters_cart')||'[]'); } catch {}
       
-      // لتخطي حماية السلة أثناء التجربة على الدومين غير الآمن
       if (!this.cart.length) {
-        this.cart = [{ id: 'test_item', name: 'منتج تجريبي نشط لموقع الوحوش', price: 500, qty: 1, size: 'XL', color: 'أسود بديل غامق' }];
+        this.cart = [{ id: 'test_item', name: 'منتج تجريبي نشط لموقع الوحوش', price: 500, qty: 1, size: 'XL', color: 'أسود' }];
       }
     },
 
@@ -214,10 +223,8 @@ function checkoutPage() {
       const shipping = this.shippingCost;
       const total    = this.subtotal + shipping;
 
-      // توليد رقم الطلب مسبقاً لإرساله بداخل تفاصيل الرسالة
       this.orderNumber = 'M-' + Math.floor(100000 + Math.random() * 900000);
 
-      // تجميع النص مع دعم المقاس واللون بدقة بالغة
       const itemsText = this.cart.map(i => {
         let details = [];
         if (i.size) details.push(`مقاس: ${i.size}`);
@@ -230,7 +237,6 @@ function checkoutPage() {
 
       const message = `🆔 رقم الطلب: ${this.orderNumber}\n👤 الاسم: ${this.form.name.trim()}\n📞 الهاتف: ${this.form.phone.trim()}\n📍 المحافظة: ${this.form.gov}\n🏠 العنوان: ${this.form.address.trim()}\n💳 طريقة الدفع: ${paymentMethod}\n📝 ملاحظات: ${this.form.notes.trim() || 'لا يوجد'}\n\n📦 الطلبات:\n${itemsText}\n\n💰 الإجمالي: EGP ${total}`;
 
-      // إعدادات Pushover الخاص بك
       const pUserKey  = 'uvzzjchk27ebj1dpnzahrqpnzgsqeg'; 
       const pApiToken = 'akb2ymien31hkq7i63mw9or1pgwszo'; 
 
@@ -251,7 +257,6 @@ function checkoutPage() {
         console.error('خطأ الإرسال:', err);
       }
 
-      // إتمام الخطوات بالواجهة ومسح السلة الوهمية
       localStorage.removeItem('monsters_cart');
       this.orderDone   = true;
       this.submitting  = false;
