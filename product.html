@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MONSTERS - تفاصيل المنتج</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght=300;400;700;900&display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -94,12 +94,12 @@
         <p class="font-black mb-3">المقاس:</p>
         <div class="flex gap-2 flex-wrap">
           <template x-for="s in sizes">
-            <button @click="selectedSize=s"
+            <button @click="selectedSize=s; sizeError=false"
               :class="selectedSize===s ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300'"
               class="w-12 h-12 rounded-xl border-2 font-bold hover:border-black transition text-sm" x-text="s"></button>
           </template>
         </div>
-        <p x-show="sizeError" class="text-red-500 text-sm mt-2 font-bold">⚠️ اختار المقاس الأول</p>
+        <p x-show="sizeError" class="text-red-500 text-sm mt-2 font-bold">⚠️ يجب اختيار المقاس أولاً</p>
       </div>
 
       <!-- Color -->
@@ -107,13 +107,14 @@
         <p class="font-black mb-3">اللون:</p>
         <div class="flex gap-3 flex-wrap">
           <template x-for="c in colors">
-            <button @click="selectedColor=c.name"
+            <button @click="selectedColor=c.name; colorError=false"
               :style="'background:'+c.hex"
               :class="selectedColor===c.name ? 'ring-4 ring-green-400 ring-offset-2 scale-110' : ''"
               class="w-8 h-8 rounded-full border border-gray-200 transition-all" :title="c.name"></button>
           </template>
         </div>
         <p x-show="selectedColor" class="text-sm text-gray-500 mt-2" x-text="'اللون المختار: '+selectedColor"></p>
+        <p x-show="colorError" class="text-red-500 text-sm mt-2 font-bold">⚠️ يجب اختيار اللون أولاً</p>
       </div>
 
       <!-- Qty -->
@@ -179,6 +180,7 @@ function productPage() {
     selectedSize: '',
     selectedColor: '',
     sizeError: false,
+    colorError: false,
     toast: false,
     cartCount: 0,
     sizes: [38,39,40,41,42,43,44,45],
@@ -194,11 +196,9 @@ function productPage() {
       if (Array.isArray(this.product.colors) && this.product.colors.length)
         this.colors = this.product.colors;
 
-      // Build image list from gallery + main image
       const gallery = Array.isArray(this.product.gallery) ? this.product.gallery.filter(Boolean) : [];
       const mainImg = this.product.image_url || null;
 
-      // Build unique ordered list: main image first, then others
       const seen = new Set();
       const imgs = [];
       if (mainImg) { imgs.push(mainImg); seen.add(mainImg); }
@@ -227,22 +227,29 @@ function productPage() {
     },
 
     addToCart() {
-      if (!this.selectedSize) { this.sizeError=true; return; }
-      this.sizeError = false;
+      // التحقق من اختيار المقاس واللون
+      this.sizeError = !this.selectedSize;
+      this.colorError = (this.colors.length > 0) ? !this.selectedColor : false;
+
+      if (this.sizeError || this.colorError) return false;
+
       const cart = this.getCart();
       const key = this.product.id+'_'+this.selectedSize+'_'+this.selectedColor;
       const idx = cart.findIndex(i=>i._key===key);
       const item = {...this.product, qty:this.qty, size:this.selectedSize, color:this.selectedColor, _key:key, finalPrice:this.calcPrice()};
+      
       if(idx>-1) cart[idx].qty += this.qty;
       else cart.push(item);
+      
       localStorage.setItem('monsters_cart', JSON.stringify(cart));
       this.cartCount = cart.length;
       this.toast=true; setTimeout(()=>this.toast=false,2500);
+      return true;
     },
 
     buyNow() {
-      this.addToCart();
-      if(this.selectedSize) window.location.href='cart.html';
+      const success = this.addToCart();
+      if(success) window.location.href='cart.html';
     }
   }
 }
