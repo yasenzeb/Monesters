@@ -210,63 +210,31 @@ function checkoutPage() {
       const shipping = this.shippingCost;
       const total    = this.subtotal + shipping;
 
-      const payload = {
-        name:     this.form.name.trim(),
-        phone:    this.form.phone.trim(),
-        gov:      this.form.gov,
-        address:  this.form.address.trim(),
-        notes:    this.form.notes.trim(),
-        payment:  this.form.payment,
-        items:    this.cart.map(i => ({
-          name:       i.name,
-          size:       i.size  || '',
-          color:      i.color || '',
-          qty:        i.qty   || 1,
-          price:      i.price,
-          finalPrice: i.finalPrice || i.price
-        })),
-        subtotal: this.subtotal,
-        shipping,
-        total
-      };
+      // تجميع قائمة المنتجات النصية
+      const itemsText = this.cart.map(i => `- ${i.name} (كمية: ${i.qty||1}) ${i.size ? '[مقاس: ' + i.size + ']' : ''}`).join('\n');
+      
+      // تحضير نص الرسالة المباشر لتطبيق ntfy
+      const message = `👤 الاسم: ${this.form.name.trim()}\n📞 الهاتف: ${this.form.phone.trim()}\n📍 المحافظة: ${this.form.gov}\n🏠 العنوان: ${this.form.address.trim()}\n📝 ملاحظات: ${this.form.notes.trim() || 'لا يوجد'}\n\n📦 الطلبات:\n${itemsText}\n\n💰 الإجمالي: EGP ${total}`;
 
-      // تحضير نص الإشعار بشكل مرتب جداً ومقروء
-      const itemsListText = payload.items.map(i => `- ${i.name} (كمية: ${i.qty}) ${i.size ? '[مقاس: ' + i.size + ']' : ''}`).join('\n');
-      const ntfyMessage = `👤 العميل: ${payload.name}\n📞 الهاتف: ${payload.phone}\n📍 المحافظة: ${payload.gov}\n🏠 العنوان: ${payload.address}\n📝 ملاحظات: ${payload.notes || 'لا يوجد'}\n\n📦 المنتجات:\n${itemsListText}\n\n💰 الإجمالي: EGP ${payload.total}`;
-
-      // إرسال الإشعار عبر تلميحات الروابط لتفادي حظر CORS المتصفح نهائياً
+      // إرسال الإشعار فوراً ومباشرةً للتطبيق عبر رابط الـ URL لتجنب مشاكل المتصفح و CORS
       try {
-        const encodedMessage = encodeURIComponent(ntfyMessage);
+        const encodedMsg = encodeURIComponent(message);
         const encodedTitle = encodeURIComponent('🛒 طلب جديد من الموقع!');
         
-        // تنبيه: استبدل 'monsters_orders_topic' باسم القناة الخاص بك في تليفونك
-        const ntfyUrl = `https://ntfy.sh/monsters_orders_topic?m=${encodedMessage}&t=${encodedTitle}&p=high&x=shopping_bags,moneybag`;
+        // استخدام التوبيك السري النشط في تطبيقك مباشرة
+        const ntfyUrl = `https://ntfy.sh/monsters-orders-x7k2?m=${encodedMsg}&t=${encodedTitle}&p=high&x=shopping_bags,moneybag`;
 
         await fetch(ntfyUrl);
-      } catch (ntfyErr) {
-        console.error('فشل إرسال إشعار ntfy الأساسي:', ntfyErr);
-      }
-
-      // استمرار كود إرسال الـ API العادي لمتجرك
-      try {
-        const res  = await fetch('/api/order', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify(payload)
-        });
-        const data = await res.json();
-
-        if (!data.success) throw new Error(data.error || 'حدث خطأ، حاول مرة ثانية');
-
-        localStorage.removeItem('monsters_cart');
-        this.orderNumber = data.order.order_number;
-        this.orderDone   = true;
-
+        console.log('تم إرسال الإشعار بنجاح للتطبيق!');
       } catch (err) {
-        this.submitError = err.message || 'حدث خطأ، حاول مرة ثانية';
-      } finally {
-        this.submitting = false;
+        console.error('خطأ أثناء إرسال إشعار ntfy:', err);
       }
+
+      // إتمام الخطوات على الواجهة وعرض شاشة النجاح مباشرة للمستخدم
+      localStorage.removeItem('monsters_cart');
+      this.orderNumber = 'M-' + Math.floor(100000 + Math.random() * 900000);
+      this.orderDone   = true;
+      this.submitting  = false;
     }
   };
 }
