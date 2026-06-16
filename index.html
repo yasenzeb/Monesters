@@ -3,7 +3,33 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<title>MONSTERS - كوتشيات وأحذية</title>
+
+<!-- إعدادات العنوان والـ Meta لضمان أرشفة احترافية باسم براند العميل في جوجل -->
+<title>MONSTERS | كوتشيات وأحذية عصرية</title>
+<meta name="description" content="متجر MONSTERS - وجهتك الأولى لأحدث وأجمل صيحات الأحذية، الكوتشيات، والسليبرز بجودة مضمونة 100% وأسعار تناسب الجميع مع شحن لكافة المحافظات.">
+<meta name="author" content="MONSTERS Store">
+<!-- الرابط الفعلي للصورة التي ستظهر عند مشاركة اللينك -->
+<meta property="og:image" content="https://monesters.vercel.app/logo.jpeg">
+<meta property="og:image:secure_url" content="https://monesters.vercel.app/logo.jpeg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- إعدادات إضافية لمنصة X (تويتر سابقاً) -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://monesters.vercel.app/logo.jpeg">
+<meta name="twitter:title" content="MONSTERS | كوتشيات وأحذية عصرية">
+<meta name="twitter:description" content="تسوق أحدث الكوتشيات والسليبرز من متجر MONSTERS. شحن سريع لجميع المحافظات.">
+
+<meta property="og:title" content="MONSTERS | كوتشيات وأحذية عصرية">
+<meta property="og:description" content="تسوق أحدث الكوتشيات والسليبرز من متجر MONSTERS. شحن سريع لجميع المحافظات.">
+<meta property="og:site_name" content="MONSTERS Store">
+
+<!-- الأيقونة القياسية (Favicon) المتوافقة تماماً مع شروط جوجل للبحث والتبويبات -->
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+<link rel="apple-touch-icon" sizes="180x180" href="logo.jpeg">
+
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -42,11 +68,11 @@
   <div class="marquee-inner">
     <span class="px-4">🚚 شحن لجميع المحافظات</span>
     <span class="px-4 text-green-400">|</span>
-    <span class="px-4"></span>خصومات حصرية <b class="text-green-400"></b></span>
+    <span class="px-4">🔥 خصومات حصرية لفترة محدودة على جميع الأحذية</span>
     <span class="px-4 text-green-400">|</span>
     <span class="px-4">✅ جودة مضمونة 100%</span>
     <span class="px-4 text-green-400">|</span>
-    <span class="px-4">📞 دعم العملاء 24/7</span>
+    <span class="px-4">📞 دعم العملاء 24/7 عبر الواتساب</span>
     <span class="px-4 text-green-400">|</span>
     <span class="px-4">🚚 شحن لجميع المحافظات</span>
     <span class="px-4 text-green-400">|</span>
@@ -144,7 +170,7 @@
     <div class="flex flex-col items-center gap-1 md:gap-2 py-2">
       <i class="fas fa-lock text-green-400 text-xl md:text-2xl"></i>
       <span class="font-bold text-sm">دفع آمن</span>
-      <span class="text-gray-400 text-xs hidden md:block">طرق دفع متعددة</span>
+      <span class="text-gray-400 text-xs hidden md:block">عند الاستلام ومعاينة كاملة</span>
     </div>
     <div class="flex flex-col items-center gap-1 md:gap-2 py-2">
       <i class="fas fa-star text-green-400 text-xl md:text-2xl"></i>
@@ -154,7 +180,7 @@
     <div class="flex flex-col items-center gap-1 md:gap-2 py-2">
       <i class="fas fa-undo text-green-400 text-xl md:text-2xl"></i>
       <span class="font-bold text-sm">استبدال</span>
-      <span class="text-gray-400 text-xs hidden md:block">خلال 14 يوم</span>
+      <span class="text-gray-400 text-xs hidden md:block">خلال 14 يوم بسلاسة</span>
     </div>
   </div>
 </section>
@@ -167,7 +193,8 @@
         <h2 class="text-2xl md:text-3xl font-black">— المنتجات —</h2>
         <div class="w-10 h-1 bg-green-500 mt-2 rounded"></div>
       </div>
-      <!-- Filter tabs فوق الجريد -->
+      
+      <!-- Filter tabs -->
       <div class="flex gap-2 flex-wrap">
         <button @click="activeFilter=''"
           :class="activeFilter==='' ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200'"
@@ -184,9 +211,9 @@
       </div>
     </div>
 
-    <!-- Skeletons -->
+    <!-- Skeletons Loading -->
     <div x-show="loadingProds" class="product-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-      <template x-for="i in 6">
+      <template x-for="i in 5" :key="i">
         <div class="bg-white rounded-2xl overflow-hidden shadow-sm">
           <div class="skeleton h-44 md:h-52 w-full"></div>
           <div class="p-3 space-y-2">
@@ -198,7 +225,7 @@
       </template>
     </div>
 
-    <!-- Grid -->
+    <!-- Products Grid -->
     <div x-show="!loadingProds" class="product-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
       <template x-for="p in filteredProducts" :key="p.id">
         <div class="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:border-green-400 cursor-pointer group active:scale-95 transition-all"
@@ -234,7 +261,7 @@
       </template>
       <div x-show="filteredProducts.length===0 && !loadingProds" class="col-span-2 md:col-span-5 text-center py-16 text-gray-400">
         <i class="fas fa-box-open text-4xl mb-3 block text-gray-200"></i>
-        <p class="font-bold">لا توجد منتجات</p>
+        <p class="font-bold">لا توجد منتجات حالياً في هذا القسم</p>
       </div>
     </div>
   </div>
@@ -296,7 +323,7 @@
     <a href="https://tiktok.com/@monsters_store" target="_blank" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white"><i class="fab fa-tiktok text-lg"></i></a>
   </div>
   <div class="border-t border-gray-800 pt-5 text-center text-gray-500 text-xs md:text-sm">
-    © 2025 MONSTERS Store. جميع الحقوق محفوظة.
+    © 2026 MONSTERS Store. جميع الحقوق محفوظة.
   </div>
 </footer>
 
@@ -345,7 +372,6 @@ function store() {
     cartCount: 0,
     toast: false,
 
-    // فئات افتراضية لو الـ API مرجعتش فئات
     defaultCats: [
       { slug: '',          name: 'الكل',       emoji: '👟' },
       { slug: 'sneakers',  name: 'كوتشيات',    emoji: '👟' },
@@ -431,7 +457,7 @@ function store() {
       if (idx > -1) cart[idx].qty = (cart[idx].qty||1)+1;
       else cart.push({...p, qty:1});
       localStorage.setItem('monsters_cart', JSON.stringify(cart));
-      this.cartCount = cart.length;
+      this.cartCount = cart.reduce((acc, curr) => acc + (curr.qty || 1), 0);
       this.toast = true;
       setTimeout(() => this.toast = false, 2500);
     }
