@@ -230,27 +230,24 @@ function checkoutPage() {
         total
       };
 
-      // 1. تحضير نص الرسالة المنظم لتطبيق ntfy
+      // تحضير نص الإشعار بشكل مرتب جداً ومقروء
       const itemsListText = payload.items.map(i => `- ${i.name} (كمية: ${i.qty}) ${i.size ? '[مقاس: ' + i.size + ']' : ''}`).join('\n');
       const ntfyMessage = `👤 العميل: ${payload.name}\n📞 الهاتف: ${payload.phone}\n📍 المحافظة: ${payload.gov}\n🏠 العنوان: ${payload.address}\n📝 ملاحظات: ${payload.notes || 'لا يوجد'}\n\n📦 المنتجات:\n${itemsListText}\n\n💰 الإجمالي: EGP ${payload.total}`;
 
+      // إرسال الإشعار عبر تلميحات الروابط لتفادي حظر CORS المتصفح نهائياً
       try {
-        // 2. إرسال الإشعار الفوري إلى ntfy
-        // تنبيه: قم بتغيير 'monsters_orders_topic' إلى اسم التوبيك الخاص بك في تطبيق ntfy لضمان الخصوصية.
-        await fetch('https://ntfy.sh/monsters_orders_topic', {
-          method: 'POST',
-          body: ntfyMessage,
-          headers: {
-            'Title': '🛒 طلب جديد من الموقع!',
-            'Priority': 'high',
-            'Tags': 'shopping_bags,moneybag'
-          }
-        });
+        const encodedMessage = encodeURIComponent(ntfyMessage);
+        const encodedTitle = encodeURIComponent('🛒 طلب جديد من الموقع!');
+        
+        // تنبيه: استبدل 'monsters_orders_topic' باسم القناة الخاص بك في تليفونك
+        const ntfyUrl = `https://ntfy.sh/monsters_orders_topic?m=${encodedMessage}&t=${encodedTitle}&p=high&x=shopping_bags,moneybag`;
+
+        await fetch(ntfyUrl);
       } catch (ntfyErr) {
-        console.error('فشل إرسال إشعار ntfy:', ntfyErr);
-        // تم وضعها داخل try/catch منفصل لضمان استمرار عملية تسجيل الطلب الأساسية حتى لو حدثت مشكلة في شبكة ntfy
+        console.error('فشل إرسال إشعار ntfy الأساسي:', ntfyErr);
       }
 
+      // استمرار كود إرسال الـ API العادي لمتجرك
       try {
         const res  = await fetch('/api/order', {
           method:  'POST',
