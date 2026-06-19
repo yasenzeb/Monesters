@@ -1,3 +1,4 @@
+// api/order.js
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -26,6 +27,7 @@ export default async function handler(req, res) {
 
     const orderNumber = 'ORD-' + Date.now().toString().slice(-6);
 
+    // إدخال الأوردر في سوبابيز (البوت سيتحسس هذا السطر فوراً)
     const { data: order, error } = await supabase
       .from('orders')
       .insert([{
@@ -48,36 +50,7 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    const paymentLabel = payment === 'cod' ? 'دفع عند الاستلام' : 'تحويل إلكتروني';
-
-    const itemsList = items
-      .map(i => `- ${i.name}${i.size ? ' (مقاس: ' + i.size + ')' : ''} x${i.qty || 1} = EGP ${(i.finalPrice || i.price) * (i.qty || 1)}`)
-      .join('\n');
-
-    const message = `👤 ${name}\n📱 ${phone}\n📍 ${gov} - ${address}\n💳 ${paymentLabel}${notes ? '\n📝 ' + notes : ''}\n\n📦 المنتجات:\n${itemsList}\n\n💰 المجموع: EGP ${subtotal}\n🚚 الشحن: EGP ${shipping}\n✅ الاجمالي: EGP ${total}`;
-
-    try {
-      await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
-        method: 'POST',
-        body: message,
-        headers: {
-          'Title': `طلب جديد #${orderNumber} - ${name}`,
-          'Priority': 'high',
-          'Tags': 'shopping_cart',
-          'Content-Type': 'text/plain'
-        }
-      });
-    } catch (ntfyErr) {
-      console.error('[ntfy error]', ntfyErr);
-    }
-
-    return res.status(201).json({
-      success: true,
-      order: {
-        order_number: orderNumber,
-        ...order
-      }
-    });
+    return res.status(201).json({ success: true, order: { order_number: orderNumber, ...order } });
 
   } catch (err) {
     console.error('[API /order]', err);
