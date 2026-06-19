@@ -107,14 +107,6 @@ ${newReceipt}`;
 
 // دالة إرسال رسائل الواتساب
 async function sendWhatsApp(phone, message) {
-  const apiUrl = process.env.WHATSAPP_API_URL;
-  const token = process.env.WHATSAPP_TOKEN;
-
-  if (!apiUrl || !token) {
-    console.warn('WhatsApp Gateway credentials are missing (WHATSAPP_API_URL or WHATSAPP_TOKEN)');
-    return;
-  }
-
   // تهيئة رقم الهاتف بالصيغة الدولية (مصر افتراضياً)
   let formattedPhone = phone.trim();
   if (formattedPhone.startsWith('01')) {
@@ -123,6 +115,42 @@ async function sendWhatsApp(phone, message) {
     formattedPhone = '20' + formattedPhone;
   } else if (!formattedPhone.startsWith('20') && formattedPhone.length === 11) {
     formattedPhone = '2' + formattedPhone;
+  }
+
+  // 1. التحقق من وجود إعدادات Green API
+  const greenInstanceId = process.env.GREENAPI_INSTANCE_ID || process.env.WHATSAPP_INSTANCE_ID;
+  const greenToken = process.env.GREENAPI_TOKEN;
+  const greenApiUrl = process.env.GREENAPI_API_URL;
+
+  if (greenInstanceId && greenToken) {
+    const baseUrl = (greenApiUrl || 'https://api.green-api.com').replace(/\/$/, '');
+    const url = `${baseUrl}/waInstance${greenInstanceId}/sendMessage/${greenToken}`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: `${formattedPhone}@c.us`,
+          message: message
+        })
+      });
+      const result = await response.json();
+      console.log(`Green API WhatsApp send result for ${formattedPhone}:`, result);
+      return result;
+    } catch (err) {
+      console.error(`Failed to send Green API message to ${formattedPhone}:`, err);
+    }
+    return;
+  }
+
+  // 2. التحقق من وجود إعدادات UltraMsg (الافتراضية القديمة)
+  const apiUrl = process.env.WHATSAPP_API_URL;
+  const token = process.env.WHATSAPP_TOKEN;
+
+  if (!apiUrl || !token) {
+    console.warn('WhatsApp Gateway credentials are missing (WHATSAPP_API_URL/WHATSAPP_TOKEN or GREENAPI_INSTANCE_ID/GREENAPI_TOKEN)');
+    return;
   }
 
   try {
@@ -137,9 +165,9 @@ async function sendWhatsApp(phone, message) {
     });
 
     const result = await response.json();
-    console.log(`WhatsApp send result for ${formattedPhone}:`, result);
+    console.log(`UltraMsg send result for ${formattedPhone}:`, result);
     return result;
   } catch (err) {
-    console.error(`Failed to send WhatsApp message to ${formattedPhone}:`, err);
+    console.error(`Failed to send UltraMsg message to ${formattedPhone}:`, err);
   }
 }
