@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { setCorsHeaders, requireAdmin, safeError } from './_auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -7,11 +6,16 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  setCorsHeaders(req, res);
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(204).end();
+  }
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
 
   try {
-    /* ── GET /api/products — عام (بدون مصادقة) ── */
     if (req.method === 'GET') {
       const { type } = req.query;
       let query = supabase
@@ -20,9 +24,7 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: false });
 
       if (type && type !== 'all') {
-        // تحقق من أن type نص آمن فقط
-        const safeType = String(type).replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 50);
-        if (safeType) query = query.eq('type', safeType);
+        query = query.eq('type', type);
       }
 
       const { data, error } = await query;
@@ -41,29 +43,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, products });
     }
 
-    /* ── POST /api/products — يتطلب مصادقة Admin ── */
     if (req.method === 'POST') {
-      if (!requireAdmin(req)) {
-        return res.status(401).json({ success: false, error: 'غير مصرح — يجب تسجيل دخول الأدمن' });
-      }
-
-      const { name, type, price, image_url, discount_type, discount_value, sizes, colors, gallery, main_image_index } = req.body || {};
+      const { name, type, price, image_url, discount_type, discount_value, sizes, colors, gallery, main_image_index } = req.body;
 
       if (!name || !type || !price) {
         return res.status(400).json({ success: false, error: 'name, type, and price are required.' });
       }
 
-      const parsedPrice = parseInt(price);
-      if (isNaN(parsedPrice) || parsedPrice < 0 || parsedPrice > 1_000_000) {
-        return res.status(400).json({ success: false, error: 'السعر غير صحيح' });
-      }
-
       const { data, error } = await supabase
         .from('products')
         .insert([{
-          name:             String(name).substring(0, 200),
-          type:             String(type).substring(0, 50),
-          price:            parsedPrice,
+          name,
+          type,
+          price:            parseInt(price),
           image_url:        image_url     || null,
           discount_type:    discount_type || 'none',
           discount_value:   discount_value || 0,
@@ -83,6 +75,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[API /products]', err);
-    return res.status(500).json({ success: false, error: safeError(err) });
+    return res.status(500).json({ success: false, error: err.message });
   }
 }
