@@ -536,18 +536,6 @@ function checkoutPage() {
 
         this.paymentProof = result.url;
 
-        /* Update order in Supabase with receipt URL */
-        const updateResp = await fetch('/api/order-receipt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            order_number: this.orderNumber,
-            receipt_url: result.url
-          })
-        });
-        const updateResult = await updateResp.json();
-        if (!updateResult.success) throw new Error(updateResult.error || 'فشل تحديث إيصال التحويل');
-
         /* Notify admin about receipt */
         const msg =
 `━━━━━━━━━━━━━━ 📎 صورة تحويل جديدة ━━━━━━━━━━━━━━
@@ -586,42 +574,21 @@ ${result.url}
       const shipping = this.shippingCost;
       const total    = this.subtotal + shipping;
 
-      try {
-        const resp = await fetch('/api/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: this.form.name.trim(),
-            phone: this.form.phone.trim(),
-            gov: this.form.gov,
-            address: this.form.address.trim(),
-            notes: this.form.notes.trim() || '',
-            payment: this.form.payment,
-            items: this.cart,
-            subtotal: this.subtotal,
-            shipping: shipping,
-            total: total
-          })
-        });
+      this.orderNumber = 'M-' + Math.floor(100000 + Math.random() * 900000);
 
-        const result = await resp.json();
-        if (!result.success) throw new Error(result.error || 'فشل حفظ الطلب');
+      /* Build items text */
+      const itemsText = this.cart.map(i => {
+        const parts = [];
+        if (i.size)  parts.push(`مقاس: ${i.size}`);
+        if (i.color) parts.push(`لون: ${i.color}`);
+        const detail = parts.length ? ` [${parts.join(' — ')}]` : '';
+        return `• ${i.name}${detail}\n  الكمية: ${i.qty||1} | السعر: EGP ${(i.finalPrice||i.price)*(i.qty||1)}`;
+      }).join('\n\n');
 
-        this.orderNumber = result.order.order_number;
+      const paymentLabel = this.form.payment === 'cod' ? 'الدفع عند الاستلام' : 'تحويل إلكتروني';
 
-        /* Build items text for Pushover admin backup */
-        const itemsText = this.cart.map(i => {
-          const parts = [];
-          if (i.size)  parts.push(`مقاس: ${i.size}`);
-          if (i.color) parts.push(`لون: ${i.color}`);
-          const detail = parts.length ? ` [${parts.join(' — ')}]` : '';
-          return `• ${i.name}${detail}\n  الكمية: ${i.qty||1} | السعر: EGP ${(i.finalPrice||i.price)*(i.qty||1)}`;
-        }).join('\n\n');
-
-        const paymentLabel = this.form.payment === 'cod' ? 'الدفع عند الاستلام' : 'تحويل إلكتروني';
-
-        /* ── Admin Message ── */
-        const adminMsg =
+      /* ── Admin Message ── */
+      const adminMsg =
 `━━━━━━━━━━━━━━ 🛒 طلب جديد MONSTERS ━━━━━━━━━━━━━━
 🆔 رقم الطلب  : ${this.orderNumber}
 👤 الاسم      : ${this.form.name.trim()}
@@ -641,19 +608,14 @@ ${itemsText}
 ━━━━━━━━━━━━━━ 📩 نسخة جاهزة للعميل ━━━━━━━━━━━━━━
 تم حجز الطلب بنجاح ويمكنك إرسال صورة التحويل لتسريع الشحن`;
 
-        await pushover('🛒 طلب جديد من الموقع!', adminMsg);
+      await pushover('🛒 طلب جديد من الموقع!', adminMsg);
 
-        localStorage.removeItem('monsters_cart');
-        this.orderDone  = true;
+      localStorage.removeItem('monsters_cart');
+      this.orderDone  = true;
+      this.submitting = false;
 
-      } catch (err) {
-        this.submitError = 'حدث خطأ أثناء إتمام الطلب: ' + (err.message || 'يرجى المحاولة لاحقاً');
-        console.error('[submitOrder]', err);
-      } finally {
-        this.submitting = false;
-        /* Scroll to top */
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+      /* Scroll to top */
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 }
