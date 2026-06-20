@@ -1,12 +1,44 @@
-// api/order-webhook.js - triggered rebuild for new env variables
+// api/order-webhook.js
+import { timingSafeEqual, createHmac } from 'crypto';
+import { setCorsHeaders } from './_auth.js';
+
+/**
+ * التحقق من توقيع Supabase Webhook
+ * تحقق من أن الطلب قادم من Supabase فعلاً
+ */
+function verifySupabaseWebhook(req) {
+  const webhookSecret = process.env.SUPABASE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    // إذا لم يُعيَّن السر، نرفض الطلب في الإنتاج
+    if (process.env.NODE_ENV === 'production') return false;
+    return true; // بيئة تطوير فقط
+  }
+  const signature = req.headers['x-supabase-signature'] || req.headers['x-webhook-signature'] || '';
+  if (!signature) return false;
+  try {
+    const expected = createHmac('sha256', webhookSecret)
+      .update(JSON.stringify(req.body))
+      .digest('hex');
+    const sigBuf = Buffer.from(signature.replace('sha256=', ''), 'hex');
+    const expBuf = Buffer.from(expected, 'hex');
+    if (sigBuf.length !== expBuf.length) return false;
+    return timingSafeEqual(sigBuf, expBuf);
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setCorsHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+
+  // ── التحقق من توقيع Supabase Webhook ──
+  if (!verifySupabaseWebhook(req)) {
+    return res.status(401).json({ success: false, error: 'توقيع Webhook غير صالح' });
   }
 
   try {
@@ -101,7 +133,8 @@ ${newReceipt}`;
 
   } catch (err) {
     console.error('[Webhook Error]', err);
-    return res.status(500).json({ success: false, error: err.message });
+    // لا نكشف تفاصيل الأخطاء للخارج
+    return res.status(500).json({ success: false, error: 'خطأ داخلي في معالجة الطلب' });
   }
 }
 

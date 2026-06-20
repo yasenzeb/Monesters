@@ -1,6 +1,27 @@
 node_modules/
+
+# Environment variables — لا ترفع أي ملف env
 .env
-.env.local
+.env.*
+!.env.example
+
+# Vercel
 .vercel
+
+# OS files
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
 *.log
+logs/
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Temp files
+*.tmp
+*.bak
