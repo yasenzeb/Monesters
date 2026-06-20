@@ -119,29 +119,50 @@ async function sendWhatsApp(phone, message) {
 
   // 1. التحقق من وجود إعدادات Green API
   const greenInstanceId = process.env.GREENAPI_INSTANCE_ID || process.env.WHATSAPP_INSTANCE_ID;
-  const greenToken = process.env.GREENAPI_TOKEN;
-  const greenApiUrl = process.env.GREENAPI_API_URL;
+  const greenToken = process.env.GREENAPI_TOKEN || process.env.WHATSAPP_TOKEN;
+  const greenApiUrl = process.env.GREENAPI_API_URL || process.env.WHATSAPP_API_URL;
 
-  if (greenInstanceId && greenToken) {
+  // نحدد ما إذا كنا نستخدم Green API
+  const isGreenApi = greenInstanceId || (greenApiUrl && greenApiUrl.includes('greenapi'));
+
+  if (isGreenApi && greenToken) {
     const baseUrl = (greenApiUrl || 'https://api.green-api.com').replace(/\/$/, '');
-    const url = `${baseUrl}/waInstance${greenInstanceId}/sendMessage/${greenToken}`;
     
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: `${formattedPhone}@c.us`,
-          message: message
-        })
-      });
-      const result = await response.json();
-      console.log(`Green API WhatsApp send result for ${formattedPhone}:`, result);
-      return result;
-    } catch (err) {
-      console.error(`Failed to send Green API message to ${formattedPhone}:`, err);
+    // إذا لم نجد الـ Instance ID بشكل منفصل ولكن الرابط يحتوي على رقم مثل 7107658162 أو waInstance
+    let instanceId = greenInstanceId;
+    if (!instanceId && baseUrl) {
+      const match = baseUrl.match(/waInstance(\d+)/i);
+      if (match) {
+        instanceId = match[1];
+      }
     }
-    return;
+
+    if (instanceId) {
+      // تنظيف الرابط الرئيسي ليكون فقط الدومين (بدون waInstance)
+      let cleanBaseUrl = baseUrl;
+      if (cleanBaseUrl.includes('/waInstance')) {
+        cleanBaseUrl = cleanBaseUrl.split('/waInstance')[0];
+      }
+      
+      const url = `${cleanBaseUrl}/waInstance${instanceId}/sendMessage/${greenToken}`;
+      
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chatId: `${formattedPhone}@c.us`,
+            message: message
+          })
+        });
+        const result = await response.json();
+        console.log(`Green API WhatsApp send result for ${formattedPhone}:`, result);
+        return result;
+      } catch (err) {
+        console.error(`Failed to send Green API message to ${formattedPhone}:`, err);
+      }
+      return;
+    }
   }
 
   // 2. التحقق من وجود إعدادات UltraMsg (الافتراضية القديمة)
