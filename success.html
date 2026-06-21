@@ -1,11 +1,143 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>MONSTERS - تم تأكيد طلبك</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>* { font-family:'Cairo',sans-serif; }</style>
 </head>
-<body>
-    
+<body class="bg-gray-50 text-black min-h-screen flex flex-col items-center justify-center px-4 py-12">
+
+<!-- LOGO -->
+<a href="index.html" class="flex items-center gap-2 mb-8">
+  <div class="bg-black rounded-lg px-3 py-1.5 flex items-center gap-1">
+    <span class="text-green-400 font-black text-2xl">M</span>
+    <span class="text-white font-black text-xl tracking-widest">ONSTERS</span>
+  </div>
+</a>
+
+<!-- CARD -->
+<div class="bg-white rounded-2xl shadow-lg border border-gray-100 w-full max-w-md p-8 text-center">
+
+  <!-- Icon -->
+  <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
+    <i class="fas fa-check-circle text-green-500 text-4xl"></i>
+  </div>
+
+  <h1 class="text-2xl font-black mb-2">تم تأكيد طلبك!</h1>
+  <p class="text-gray-500 text-sm mb-6">شكراً لثقتك في MONSTERS. سيتواصل معك فريقنا قريباً لتأكيد الشحن.</p>
+
+  <!-- Order Number -->
+  <div id="order-info" class="hidden bg-gray-50 rounded-xl p-4 mb-6 text-right">
+    <p class="text-xs text-gray-400 mb-1">رقم الطلب</p>
+    <p id="order-num" class="font-black text-lg text-green-600 tracking-widest"></p>
+  </div>
+
+  <!-- Upload Receipt (for bank transfer) -->
+  <div id="receipt-section" class="hidden mb-6">
+    <div class="border border-dashed border-gray-300 rounded-xl p-5 bg-gray-50">
+      <p class="text-sm font-bold mb-3 text-gray-700">أرسل إيصال التحويل البنكي</p>
+      <label class="cursor-pointer inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition">
+        <i class="fas fa-upload"></i> رفع الإيصال
+        <input type="file" id="receipt-file" accept="image/*" class="hidden" onchange="handleReceiptUpload(this)">
+      </label>
+      <p id="receipt-status" class="mt-3 text-sm text-gray-500"></p>
+      <img id="receipt-preview" class="hidden mt-3 max-h-40 mx-auto rounded-lg object-contain border border-gray-200"/>
+    </div>
+  </div>
+
+  <!-- CTAs -->
+  <div class="flex flex-col gap-3">
+    <a href="index.html" class="w-full bg-black text-white font-black py-3 rounded-xl hover:bg-gray-800 transition text-center block">
+      <i class="fas fa-home ml-2"></i> العودة للمتجر
+    </a>
+    <a id="wa-order-link" href="https://wa.me/201050805608" target="_blank"
+       class="w-full bg-green-500 text-white font-black py-3 rounded-xl hover:bg-green-600 transition text-center flex items-center justify-center gap-2">
+      <i class="fab fa-whatsapp text-lg"></i> تواصل معنا عبر واتساب
+    </a>
+  </div>
+</div>
+
+<!-- WhatsApp Floating Button -->
+<a href="https://wa.me/201050805608" target="_blank" rel="noopener noreferrer"
+   style="position:fixed;bottom:24px;left:16px;z-index:999;width:52px;height:52px;border-radius:50%;background:#25d366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);text-decoration:none"
+   aria-label="تواصل عبر واتساب">
+  <i class="fab fa-whatsapp" style="font-size:26px"></i>
+</a>
+
+<script>
+(function(){
+  const orderNum = sessionStorage.getItem('monsters_last_order');
+  const payMethod = sessionStorage.getItem('monsters_last_payment');
+
+  if (orderNum) {
+    document.getElementById('order-num').textContent = orderNum;
+    document.getElementById('order-info').classList.remove('hidden');
+
+    // Update WhatsApp link with order details
+    const waMsg = encodeURIComponent(`مرحباً، لديّ طلب برقم: ${orderNum}`);
+    document.getElementById('wa-order-link').href = `https://wa.me/201050805608?text=${waMsg}`;
+  }
+
+  if (payMethod === 'transfer') {
+    document.getElementById('receipt-section').classList.remove('hidden');
+  }
+})();
+
+async function handleReceiptUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const status = document.getElementById('receipt-status');
+  const preview = document.getElementById('receipt-preview');
+  const orderNum = sessionStorage.getItem('monsters_last_order');
+
+  if (!orderNum) {
+    status.textContent = 'رقم الطلب غير موجود.';
+    return;
+  }
+
+  // Show preview
+  const reader = new FileReader();
+  reader.onload = e => {
+    preview.src = e.target.result;
+    preview.classList.remove('hidden');
+  };
+  reader.readAsDataURL(file);
+
+  status.textContent = 'جاري الرفع...';
+  input.disabled = true;
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+    const uploadData = await uploadRes.json();
+
+    if (!uploadData.success) throw new Error(uploadData.error || 'فشل رفع الصورة');
+
+    const receiptRes = await fetch('/api/order-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_number: orderNum, receipt_url: uploadData.url })
+    });
+    const receiptData = await receiptRes.json();
+
+    if (!receiptData.success) throw new Error(receiptData.error || 'فشل حفظ الإيصال');
+
+    status.textContent = 'تم إرسال الإيصال بنجاح!';
+    status.className = 'mt-3 text-sm text-green-600 font-bold';
+  } catch (err) {
+    status.textContent = 'فشل الرفع: ' + (err.message || '');
+    status.className = 'mt-3 text-sm text-red-500';
+    input.disabled = false;
+  }
+}
+</script>
 </body>
 </html>

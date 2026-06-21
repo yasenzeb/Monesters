@@ -1,22 +1,22 @@
 import { IncomingForm } from 'formidable';
 import { readFileSync } from 'fs';
+import { setCorsHeaders, requireAdmin, safeError } from './_auth.js';
 
 export const config = {
   api: { bodyParser: false }
 };
 
 export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    return res.status(204).end();
-  }
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setCorsHeaders(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+
+  // ── حماية: يتطلب مصادقة المسؤول ──
+  if (!requireAdmin(req)) {
+    return res.status(401).json({ success: false, error: 'غير مصرح.' });
   }
 
   try {
@@ -92,6 +92,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[API /upload]', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: safeError(err) });
   }
 }
