@@ -1,6 +1,6 @@
 // api/order.js — إنشاء طلب جديد مع إشعار Pushover
 import { createClient } from '@supabase/supabase-js';
-import { setCorsHeaders, isRateLimited, safeError } from './_auth.js';
+import { isRateLimited, safeError } from './_auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -15,17 +15,16 @@ function generateOrderNumber() {
   return `MNS-${date}-${rand}`;
 }
 
-// ── إرسال إشعار Pushover (من السيرفر) ──
+// ── إرسال إشعار Pushover ──
 async function sendPushoverNotification(title, message) {
   const token = process.env.PUSHOVER_TOKEN;
   const user = process.env.PUSHOVER_USER;
   
-  console.log('[Pushover] Attempting to send notification');
   console.log('[Pushover] Token exists:', !!token);
   console.log('[Pushover] User exists:', !!user);
   
   if (!token || !user) {
-    console.error('[Pushover] Missing credentials - Token:', !!token, 'User:', !!user);
+    console.error('[Pushover] Missing credentials');
     return false;
   }
 
@@ -39,8 +38,6 @@ async function sendPushoverNotification(title, message) {
       sound: 'cashregister',
     });
 
-    console.log('[Pushover] Sending request to Pushover API');
-    
     const resp = await fetch('https://api.pushover.net/1/messages.json', {
       method: 'POST',
       headers: {
@@ -50,78 +47,61 @@ async function sendPushoverNotification(title, message) {
     });
 
     const result = await resp.json();
-    console.log('[Pushover] Response status:', resp.status);
-    console.log('[Pushover] Response body:', result);
+    console.log('[Pushover] Response:', result);
 
     if (!resp.ok) {
-      console.error('[Pushover] Failed with status:', resp.status);
-      console.error('[Pushover] Error details:', result);
+      console.error('[Pushover] Failed:', result);
       return false;
     }
 
-    console.log('[Pushover] Notification sent successfully!');
+    console.log('[Pushover] ✅ Sent successfully!');
     return true;
   } catch (e) {
-    console.error('[Pushover] Exception:', e.message);
+    console.error('[Pushover] Error:', e.message);
     return false;
   }
 }
 
 // ══════════════════════════════════════════════════════════════
-// ⭐ MAIN HANDLER - مع إصلاح كامل لـ OPTIONS
+// ⭐ MAIN HANDLER
 // ══════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
-  console.log('[API /order] Request received:', {
-    method: req.method,
-    url: req.url,
-    headers: {
-      origin: req.headers['origin'],
-      contentType: req.headers['content-type'],
-    }
-  });
-
   // ══════════════════════════════════════════════════════════════
-  // ⭐ STEP 1: Handle OPTIONS preflight request - منفصل تماماً
-  // ══════════════════════════════════════════════════════════════
-  if (req.method === 'OPTIONS') {
-    console.log('[API /order] ✅ OPTIONS preflight - returning 200 with CORS headers');
-    
-    // إضافة جميع CORS headers المطلوبة
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-token, x-admin-password');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    
-    return res.status(200).end();  // ✅ استخدم 200 وليس 204
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // ⭐ STEP 2: Set CORS headers for all other requests
+  // ⭐ STEP 1: CORS headers للجميع
   // ══════════════════════════════════════════════════════════════
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-token, x-admin-password');
+  res.setHeader('Access-Control-Max-Age', '86400');
 
   // ══════════════════════════════════════════════════════════════
-  // ⭐ STEP 3: Only POST allowed for data requests
+  // ⭐ STEP 2: Handle OPTIONS - الرد فوراً
+  // ══════════════════════════════════════════════════════════════
+  if (req.method === 'OPTIONS') {
+    console.log('[API /order] ✅ OPTIONS - 204');
+    return res.status(204).end();  // 204 No Content
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // ⭐ STEP 3: Only POST
   // ══════════════════════════════════════════════════════════════
   if (req.method !== 'POST') {
     console.error('[API /order] ❌ Invalid method:', req.method);
     return res.status(405).json({
       success: false,
-      error: 'Method not allowed — استخدم POST فقط',
-      receivedMethod: req.method,
-      allowedMethods: ['POST', 'OPTIONS']
+      error: `Method ${req.method} not allowed. Use POST.`,
     });
   }
 
-  // ── Rate Limit: 5 طلبات/ساعة لكل IP ──
+  console.log('[API /order] 📥 POST request received');
+
+  // ── Rate Limit ──
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
     || req.socket?.remoteAddress
     || 'unknown';
   
   if (isRateLimited(`order:${ip}`, 5, 60 * 60 * 1000)) {
-    console.warn('[API /order] Rate limit exceeded for IP:', ip);
+    console.warn('[API /order] ⚠️ Rate limit exceeded:', ip);
     return res.status(429).json({ 
       success: false, 
       error: 'محاولات كثيرة، حاول لاحقاً.' 
@@ -134,41 +114,36 @@ export default async function handler(req, res) {
       payment, items, subtotal, shipping, total,
     } = req.body || {};
 
-    console.log('[API /order] Received data:', {
-      name: name ? '✓' : '✗',
-      phone: phone ? '✓' : '✗',
-      gov: gov ? '✓' : '✗',
-      address: address ? '✓' : '✗',
-      payment: payment ? '✓' : '✗',
-      items: Array.isArray(items) ? items.length : '✗',
+    console.log('[API /order] 📦 Data:', {
+      name: name || 'missing',
+      phone: phone || 'missing',
+      gov: gov || 'missing',
+      items: items?.length || 0,
     });
 
-    // ── التحقق من المدخلات الأساسية ──
+    // ── التحقق ──
     if (!name?.trim() || !phone?.trim() || !gov || !address?.trim() || !payment) {
-      console.error('[API /order] Missing required fields');
       return res.status(400).json({ 
         success: false, 
-        error: 'بيانات ناقصة - تأكد من: الاسم، الهاتف، المحافظة، العنوان، طريقة الدفع'
+        error: 'بيانات ناقصة'
       });
     }
 
     if (!['cod', 'transfer'].includes(payment)) {
-      console.error('[API /order] Invalid payment method:', payment);
       return res.status(400).json({ 
         success: false, 
-        error: 'طريقة دفع غير مقبولة - استخدم cod أو transfer' 
+        error: 'طريقة دفع غير مقبولة' 
       });
     }
 
     if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
-      console.error('[API /order] Invalid items array');
       return res.status(400).json({ 
         success: false, 
-        error: 'السلة غير صالحة - يجب أن تحتوي على 1-50 منتج' 
+        error: 'السلة غير صالحة' 
       });
     }
 
-    // ── تنظيف بنود الطلب ──
+    // ── تنظيف البيانات ──
     const safeItems = items.map(item => ({
       id:         String(item.id || '').substring(0, 100),
       name:       String(item.name || '').substring(0, 200),
@@ -184,17 +159,10 @@ export default async function handler(req, res) {
     const parsedShipping = Math.max(0, Number(shipping) || 0);
     const parsedTotal = Math.round(calcSubtotal + parsedShipping);
 
-    console.log('[API /order] Calculations:', {
-      calcSubtotal,
-      parsedShipping,
-      parsedTotal,
-      itemsCount: safeItems.length
-    });
-
     const orderNumber = generateOrderNumber();
-    console.log('[API /order] Generated order number:', orderNumber);
+    console.log('[API /order] 🆔 Order number:', orderNumber);
 
-    // ── إدراج الطلب في Supabase ──
+    // ── إدراج في Supabase ──
     const { data, error } = await supabase
       .from('orders')
       .insert([{
@@ -215,27 +183,25 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
-      console.error('[API /order] Supabase insert error:', error);
+      console.error('[API /order] DB Error:', error);
       throw error;
     }
 
-    console.log('[API /order] Order created successfully:', data.id);
+    console.log('[API /order] ✅ Order created:', data.id);
 
-    // ══════════════════════════════════════════════════════════════
-    // ⭐ إرسال إشعار Pushover من السيرفر
-    // ══════════════════════════════════════════════════════════════
+    // ── Pushover ──
     const payLabel = payment === 'cod' ? 'الدفع عند الاستلام' : 'تحويل إلكتروني';
     const itemsText = safeItems
       .map(i => `• ${i.name} ×${i.qty} = EGP ${i.finalPrice * i.qty}`)
       .join('\n');
 
-    const adminMessage = `━━━━━━━━━━━━━━ 🛒 طلب جديد MONSTERS ━━━━━━━━━━━━━━
-🆔 رقم الطلب: ${orderNumber}
+    const adminMessage = `━━━━━━━━━━━━━━ 🛒 طلب جديد ━━━━━━━━━━━━━━
+🆔 رقم: ${orderNumber}
 👤 العميل: ${name}
 📞 الهاتف: ${phone}
 📍 المحافظة: ${gov}
 🏠 العنوان: ${address}
-💳 طريقة الدفع: ${payLabel}
+💳 الدفع: ${payLabel}
 📝 ملاحظات: ${notes || 'لا يوجد'}
 
 📦 المنتجات:
@@ -245,31 +211,22 @@ ${itemsText}
 🚚 الشحن: EGP ${parsedShipping}
 ✅ الإجمالي: EGP ${parsedTotal}`;
 
-    console.log('[API /order] Sending Pushover notification...');
-    
-    const pushoverSent = await sendPushoverNotification(
-      `🛒 طلب جديد #${orderNumber}`,
-      adminMessage
-    );
+    // إرسال الإشعار (لا ننتظر)
+    sendPushoverNotification(`🛒 طلب جديد #${orderNumber}`, adminMessage)
+      .then(sent => console.log('[Pushover] Sent:', sent))
+      .catch(err => console.error('[Pushover] Error:', err));
 
-    if (pushoverSent) {
-      console.log('[API /order] ✅ Pushover notification sent successfully!');
-    } else {
-      console.warn('[API /order] ⚠️ Pushover notification failed - check credentials');
-    }
-
-    // ── الرد الناجح ──
+    // ── الرد ──
     return res.status(201).json({
       success: true,
       order: {
         order_number: data.order_number,
         id: data.id,
-        pushover_sent: pushoverSent,
       },
     });
 
   } catch (err) {
-    console.error('[API /order] CRITICAL ERROR:', err);
+    console.error('[API /order] 💥 ERROR:', err);
     return res.status(500).json({ 
       success: false, 
       error: safeError(err),
