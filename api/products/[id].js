@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { setCorsHeaders, requireAdmin, safeError } from '../_auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -6,14 +7,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    return res.status(204).end();
-  }
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setCorsHeaders(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   const { id } = req.query;
 
@@ -46,6 +41,10 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
+      if (!requireAdmin(req)) {
+        return res.status(401).json({ success: false, error: 'غير مصرح.' });
+      }
+
       const { name, type, price, image_url, discount_type, discount_value, sizes, colors, gallery, main_image_index } = req.body || {};
       const updates = {};
 
@@ -78,6 +77,10 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
+      if (!requireAdmin(req)) {
+        return res.status(401).json({ success: false, error: 'غير مصرح.' });
+      }
+
       const { error } = await supabase
         .from('products')
         .delete()
@@ -91,6 +94,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error(`[API /products/${id}]`, err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: safeError(err) });
   }
 }
