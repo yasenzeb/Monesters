@@ -66,6 +66,12 @@ async function sendPushoverNotification(title, message) {
 // ⭐ MAIN HANDLER
 // ══════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
+  console.log('[API /order] 📥 Request received:', {
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+  });
+
   // ══════════════════════════════════════════════════════════════
   // ⭐ STEP 1: CORS headers للجميع
   // ══════════════════════════════════════════════════════════════
@@ -79,7 +85,7 @@ export default async function handler(req, res) {
   // ══════════════════════════════════════════════════════════════
   if (req.method === 'OPTIONS') {
     console.log('[API /order] ✅ OPTIONS - 204');
-    return res.status(204).end();  // 204 No Content
+    return res.status(204).end();
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -92,8 +98,6 @@ export default async function handler(req, res) {
       error: `Method ${req.method} not allowed. Use POST.`,
     });
   }
-
-  console.log('[API /order] 📥 POST request received');
 
   // ── Rate Limit ──
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()

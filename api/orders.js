@@ -1,28 +1,69 @@
-// api/order.js - نسخة مبسطة للاختبار
+import { createClient } from '@supabase/supabase-js';
+import { setCorsHeaders, requireAdmin, safeError } from './_auth.js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-token, x-admin-password');
-  res.setHeader('Access-Control-Max-Age', '86400');
+  setCorsHeaders(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
-  // OPTIONS - رد فوري
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (!requireAdmin(req)) {
+    return res.status(401).json({ success: false, error: 'غير مصرح.' });
   }
 
-  // فقط POST
-  if (req.method !== 'POST') {
-    return res.status(405).json({ 
-      success: false, 
-      error: 'Method not allowed. Use POST.' 
-    });
-  }
+  try {
+    if (req.method === 'GET') {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  // اختبار بسيط
-  return res.status(200).json({ 
-    success: true, 
-    message: 'API works!', 
-    received: req.body 
-  });
+      if (error) throw error;
+      return res.status(200).json({ success: true, orders: data || [] });
+    }
+
+    if (req.method === 'DELETE') {
+      const { id } = req.query;
+      if (!id) {
+        return res.status(400).json({ success: false, error: 'id مطلوب.' });
+      }
+
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, message: 'تم حذف الطلب.' });
+    }
+
+    if (req.method === 'PUT') {
+      const { id }     = req.query;
+      const { status } = req.body || {};
+      const allowed    = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+
+      if (!id || !status || !allowed.includes(status)) {
+        return res.status(400).json({ success: false, error: 'بيانات غير صالحة.' });
+      }
+
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, order: data });
+    }
+
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  } catch (err) {
+    console.error('[API /orders]', err);
+    return res.status(500).json({ success: false, error: safeError(err) });
+  }
 }

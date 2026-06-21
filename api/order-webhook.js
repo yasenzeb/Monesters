@@ -1,17 +1,11 @@
-// api/order-webhook.js
 import { timingSafeEqual, createHmac } from 'crypto';
 import { setCorsHeaders } from './_auth.js';
 
-/**
- * التحقق من توقيع Supabase Webhook
- * تحقق من أن الطلب قادم من Supabase فعلاً
- */
 function verifySupabaseWebhook(req) {
   const webhookSecret = process.env.SUPABASE_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    // إذا لم يُعيَّن السر، نرفض الطلب في الإنتاج
     if (process.env.NODE_ENV === 'production') return false;
-    return true; // بيئة تطوير فقط
+    return true;
   }
   const signature = req.headers['x-supabase-signature'] || req.headers['x-webhook-signature'] || '';
   if (!signature) return false;
@@ -36,7 +30,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  // ── التحقق من توقيع Supabase Webhook ──
   if (!verifySupabaseWebhook(req)) {
     return res.status(401).json({ success: false, error: 'توقيع Webhook غير صالح' });
   }
@@ -49,10 +42,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'حمولة غير صالحة' });
     }
 
-    const adminPhone = process.env.ADMIN_PHONE; // رقم هاتف الآدمن الأساسي
+    const adminPhone = process.env.ADMIN_PHONE;
 
     if (type === 'INSERT') {
-      // 1. إرسال الرسالة إلى العميل
       const customerMessage = `أزيك يا ${record.customer_name} 👋❤️
 
 معاك خدمة عملاء MONSTERS 👟🔥
@@ -69,9 +61,7 @@ MONSTERS — كل خطوة ليها هيبة 👟🔥`;
 
       await sendWhatsApp(record.phone, customerMessage);
 
-      // 2. إرسال تفاصيل الطلب للآدمن
       if (adminPhone) {
-        // تنسيق قائمة المنتجات للآدمن
         let itemsText = '';
         if (Array.isArray(record.items)) {
           itemsText = record.items.map(i => {
@@ -112,7 +102,6 @@ ${itemsText}
       const oldReceipt = old_record?.receipt_url;
       const newReceipt = record?.receipt_url;
 
-      // عند رفع الإيصال وتحديثه
       if (newReceipt && newReceipt !== oldReceipt) {
         if (adminPhone) {
           const receiptMessage = `━━━━━━━━━━━━━━ 📎 إيصال تحويل جديد MONSTERS ━━━━━━━━━━━━━━
@@ -133,14 +122,11 @@ ${newReceipt}`;
 
   } catch (err) {
     console.error('[Webhook Error]', err);
-    // لا نكشف تفاصيل الأخطاء للخارج
     return res.status(500).json({ success: false, error: 'خطأ داخلي في معالجة الطلب' });
   }
 }
 
-// دالة إرسال رسائل الواتساب
 async function sendWhatsApp(phone, message) {
-  // تهيئة رقم الهاتف بالصيغة الدولية (مصر افتراضياً)
   let formattedPhone = phone.trim();
   if (formattedPhone.startsWith('01')) {
     formattedPhone = '20' + formattedPhone.slice(1);
@@ -150,18 +136,15 @@ async function sendWhatsApp(phone, message) {
     formattedPhone = '2' + formattedPhone;
   }
 
-  // 1. التحقق من وجود إعدادات Green API
   const greenInstanceId = process.env.GREENAPI_INSTANCE_ID || process.env.WHATSAPP_INSTANCE_ID;
   const greenToken = process.env.GREENAPI_TOKEN || process.env.WHATSAPP_TOKEN;
   const greenApiUrl = process.env.GREENAPI_API_URL || process.env.WHATSAPP_API_URL;
 
-  // نحدد ما إذا كنا نستخدم Green API
   const isGreenApi = greenInstanceId || (greenApiUrl && greenApiUrl.includes('greenapi'));
 
   if (isGreenApi && greenToken) {
     const baseUrl = (greenApiUrl || 'https://api.green-api.com').replace(/\/$/, '');
     
-    // إذا لم نجد الـ Instance ID بشكل منفصل ولكن الرابط يحتوي على رقم مثل 7107658162 أو waInstance
     let instanceId = greenInstanceId;
     if (!instanceId && baseUrl) {
       const match = baseUrl.match(/waInstance(\d+)/i);
@@ -171,7 +154,6 @@ async function sendWhatsApp(phone, message) {
     }
 
     if (instanceId) {
-      // تنظيف الرابط الرئيسي ليكون فقط الدومين (بدون waInstance)
       let cleanBaseUrl = baseUrl;
       if (cleanBaseUrl.includes('/waInstance')) {
         cleanBaseUrl = cleanBaseUrl.split('/waInstance')[0];
@@ -198,12 +180,11 @@ async function sendWhatsApp(phone, message) {
     }
   }
 
-  // 2. التحقق من وجود إعدادات UltraMsg (الافتراضية القديمة)
   const apiUrl = process.env.WHATSAPP_API_URL;
   const token = process.env.WHATSAPP_TOKEN;
 
   if (!apiUrl || !token) {
-    console.warn('WhatsApp Gateway credentials are missing (WHATSAPP_API_URL/WHATSAPP_TOKEN or GREENAPI_INSTANCE_ID/GREENAPI_TOKEN)');
+    console.warn('WhatsApp Gateway credentials are missing');
     return;
   }
 

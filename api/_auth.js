@@ -8,12 +8,9 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
 ];
 
-/**
- * يضع CORS headers مقيدة بالدومين المصرح به.
- */
 export function setCorsHeaders(req, res) {
   const origin = req.headers['origin'] || '';
-  const isDev  = process.env.NODE_ENV !== 'production';
+  const isDev = process.env.NODE_ENV !== 'production';
   
   let allowedOrigin = '*';
   if (!isDev) {
@@ -27,9 +24,6 @@ export function setCorsHeaders(req, res) {
   res.setHeader('Vary', 'Origin');
 }
 
-/**
- * ── PHASE 3: Token Generation ──
- */
 export function generateToken() {
   const secret = process.env.ADMIN_TOKEN_SECRET || process.env.ADMIN_PASSWORD;
   if (!secret) {
@@ -48,9 +42,6 @@ export function generateToken() {
   return `${payloadBase64}.${signature}`;
 }
 
-/**
- * ── PHASE 3: Token Verification ──
- */
 export function verifyToken(token) {
   if (!token || typeof token !== 'string') return false;
 
@@ -81,9 +72,6 @@ export function verifyToken(token) {
   }
 }
 
-/**
- * ── PHASE 3: Updated requireAdmin ──
- */
 export function requireAdmin(req) {
   const token = req.headers['x-admin-token'] || '';
   if (token && verifyToken(token)) {
@@ -111,7 +99,7 @@ export function safeError(err) {
 const rateLimitMap = new Map();
 
 export function isRateLimited(ip, maxRequests = 10, windowMs = 60_000) {
-  const now   = Date.now();
+  const now = Date.now();
   const entry = rateLimitMap.get(ip) || { count: 0, start: now };
   if (now - entry.start > windowMs) {
     rateLimitMap.set(ip, { count: 1, start: now });

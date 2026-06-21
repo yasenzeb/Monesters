@@ -1,4 +1,3 @@
-// api/order-receipt.js — حفظ رابط إيصال التحويل على الطلب
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, isRateLimited, safeError } from './_auth.js';
 
@@ -7,7 +6,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// أنماط URLs المسموح بها (Cloudinary فقط)
 const ALLOWED_URL_PATTERNS = [
   /^https:\/\/res\.cloudinary\.com\//,
   /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co\/storage\//,
@@ -25,7 +23,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  // ── Rate Limit: 10 طلبات / 10 دقائق لكل IP ──
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
     || req.socket?.remoteAddress
     || 'unknown';
@@ -40,7 +37,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'بيانات ناقصة.' });
     }
 
-    // ── تنظيف رقم الطلب ──
     const safeOrderNumber = String(order_number)
       .replace(/[^A-Z0-9\-]/g, '')
       .substring(0, 30);
@@ -49,7 +45,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'رقم الطلب غير صحيح.' });
     }
 
-    // ── التحقق من رابط الإيصال ──
     if (!isAllowedReceiptUrl(receipt_url)) {
       return res.status(400).json({ success: false, error: 'رابط الإيصال غير مسموح به.' });
     }
