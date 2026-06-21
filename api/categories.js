@@ -11,7 +11,6 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   try {
-    /* ── GET /api/categories ── */
     if (req.method === 'GET') {
       const { data, error } = await supabase
         .from('categories')
@@ -22,7 +21,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, categories: data || [] });
     }
 
-    /* ── POST /api/categories ── */
     if (req.method === 'POST') {
       if (!requireAdmin(req)) {
         return res.status(401).json({ success: false, error: 'غير مصرح.' });
@@ -43,7 +41,6 @@ export default async function handler(req, res) {
         .single();
 
       if (error) {
-        // Unique violation on slug
         if (error.code === '23505') {
           return res.status(409).json({ success: false, error: 'هذا المعرف (slug) موجود بالفعل.' });
         }
@@ -53,7 +50,6 @@ export default async function handler(req, res) {
       return res.status(201).json({ success: true, category: data });
     }
 
-    /* ── DELETE /api/categories?slug=xxx ── */
     if (req.method === 'DELETE') {
       if (!requireAdmin(req)) {
         return res.status(401).json({ success: false, error: 'غير مصرح.' });

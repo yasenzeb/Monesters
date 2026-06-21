@@ -9,7 +9,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  // ── Rate Limiting: 10 محاولات / دقيقة per IP ──
   const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
     || req.socket?.remoteAddress
     || 'unknown';
@@ -31,7 +30,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'الخادم غير مُهيأ.' });
   }
 
-  // مقارنة آمنة ضد timing attacks
   let match = false;
   try {
     const { timingSafeEqual } = await import('crypto');
@@ -46,7 +44,6 @@ export default async function handler(req, res) {
     return res.status(401).json({ success: false, error: 'كلمة المرور غلط!' });
   }
 
-  // ── PHASE 3: Generate and return token ──
   const token = generateToken();
 
   return res.status(200).json({ success: true, token });

@@ -6,7 +6,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// ── PHASE 4: URL validation ──
 const ALLOWED_URL_PATTERNS = [
   /^https:\/\/res\.cloudinary\.com\//,
   /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co\/storage\//
@@ -60,7 +59,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'name, type, and price are required.' });
       }
 
-      // ── PHASE 4: Verify category exists ──
       const { data: catData, error: catError } = await supabase
         .from('categories')
         .select('slug')
@@ -71,17 +69,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'الفئة غير موجودة' });
       }
 
-      // ── PHASE 4: Validate discount_value as number ──
       const parsedDiscountValue = discount_type === 'none'
         ? 0
         : (parseFloat(discount_value) || 0);
 
-      // ── PHASE 4: Validate image_url ──
       if (image_url && !isAllowedUrl(image_url)) {
         return res.status(400).json({ success: false, error: 'رابط الصورة غير مسموح به' });
       }
 
-      // ── PHASE 4: Validate gallery URLs ──
       if (Array.isArray(gallery)) {
         for (const url of gallery) {
           if (url && !isAllowedUrl(url)) {

@@ -6,7 +6,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// ── PHASE 4: URL validation ──
 const ALLOWED_URL_PATTERNS = [
   /^https:\/\/res\.cloudinary\.com\//,
   /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co\/storage\//
@@ -59,27 +58,25 @@ export default async function handler(req, res) {
       const { name, type, price, image_url, discount_type, discount_value, sizes, colors, gallery, main_image_index } = req.body || {};
       const updates = {};
 
-      if (name              !== undefined) updates.name              = name;
-      if (type              !== undefined) updates.type              = type;
-      if (price             !== undefined) updates.price             = parseInt(price);
-      if (image_url         !== undefined) updates.image_url         = image_url;
+      if (name !== undefined) updates.name = name;
+      if (type !== undefined) updates.type = type;
+      if (price !== undefined) updates.price = parseInt(price);
+      if (image_url !== undefined) updates.image_url = image_url;
 
-      // ── PHASE 4: Validate discount_value as number ──
-      if (discount_type     !== undefined) updates.discount_type     = discount_type;
-      if (discount_value    !== undefined) {
+      if (discount_type !== undefined) updates.discount_type = discount_type;
+      if (discount_value !== undefined) {
         updates.discount_value = discount_type === 'none' ? 0 : (parseFloat(discount_value) || 0);
       }
 
-      if (sizes             !== undefined) updates.sizes             = Array.isArray(sizes) && sizes.length ? sizes : [38,39,40,41,42,43,44,45];
-      if (colors            !== undefined) updates.colors            = Array.isArray(colors) ? colors : [];
-      if (gallery           !== undefined) updates.gallery           = Array.isArray(gallery) ? gallery : [];
-      if (main_image_index  !== undefined) updates.main_image_index  = parseInt(main_image_index) || 0;
+      if (sizes !== undefined) updates.sizes = Array.isArray(sizes) && sizes.length ? sizes : [38,39,40,41,42,43,44,45];
+      if (colors !== undefined) updates.colors = Array.isArray(colors) ? colors : [];
+      if (gallery !== undefined) updates.gallery = Array.isArray(gallery) ? gallery : [];
+      if (main_image_index !== undefined) updates.main_image_index = parseInt(main_image_index) || 0;
 
       if (updates.discount_type === 'none') {
         updates.discount_value = 0;
       }
 
-      // ── PHASE 4: Validate category exists if type is being updated ──
       if (type !== undefined) {
         const { data: catData, error: catError } = await supabase
           .from('categories')
@@ -92,12 +89,10 @@ export default async function handler(req, res) {
         }
       }
 
-      // ── PHASE 4: Validate image_url ──
       if (image_url !== undefined && image_url && !isAllowedUrl(image_url)) {
         return res.status(400).json({ success: false, error: 'رابط الصورة غير مسموح به' });
       }
 
-      // ── PHASE 4: Validate gallery URLs ──
       if (gallery !== undefined && Array.isArray(gallery)) {
         for (const url of gallery) {
           if (url && !isAllowedUrl(url)) {

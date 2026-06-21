@@ -15,8 +15,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'title و message مطلوبان' });
     }
 
-    // type can be 'order' (no auth needed from checkout) or 'admin' (needs auth)
-    // For order notifications, we allow without admin token but validate structure
+    // type 'order' مسموح بدون مصادقة
     if (type === 'admin' && !requireAdmin(req)) {
       return res.status(401).json({ success: false, error: 'غير مصرح' });
     }
@@ -24,9 +23,14 @@ export default async function handler(req, res) {
     const pUser = process.env.PUSHOVER_USER;
     const pToken = process.env.PUSHOVER_TOKEN;
 
+    console.log('[API /notify] Pushover credentials:', {
+      user: pUser ? '✓ موجود' : '✗ غير موجود',
+      token: pToken ? '✓ موجود' : '✗ غير موجود',
+    });
+
     if (!pUser || !pToken) {
-      // Silently succeed if Pushover not configured
-      return res.status(200).json({ success: true, sent: false });
+      console.warn('[API /notify] Pushover not configured - returning success silently');
+      return res.status(200).json({ success: true, sent: false, message: 'Pushover not configured' });
     }
 
     const fd = new URLSearchParams();
@@ -37,16 +41,28 @@ export default async function handler(req, res) {
     fd.append('priority', '1');
     fd.append('sound', 'cashregister');
 
+    console.log('[API /notify] Sending to Pushover API...');
+
     const resp = await fetch('https://api.pushover.net/1/messages.json', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
       body: fd
     });
 
     const result = await resp.json();
+    console.log('[API /notify] Pushover response:', result);
+
+    if (!resp.ok) {
+      console.error('[API /notify] Pushover error:', result);
+      return res.status(200).json({ success: true, sent: false, error: result });
+    }
+
     return res.status(200).json({ success: true, sent: true });
 
   } catch (err) {
-    console.error('[API /notify]', err);
+    console.error('[API /notify] Error:', err);
     return res.status(500).json({ success: false, error: 'فشل إرسال الإشعار' });
   }
 }

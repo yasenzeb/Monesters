@@ -132,13 +132,13 @@
           <label class="flex-1 border-2 rounded-xl p-3 cursor-pointer flex items-center gap-2 transition"
             :class="form.payment==='cod' ? 'border-green-500 bg-green-50' : 'border-gray-200'">
             <input type="radio" x-model="form.payment" value="cod" class="hidden"/>
-            <i class="fas fa-money-bill text-green-500 text-xl"></i>
+            <i class="fas fa-money-bill text-green-500"></i>
             <span class="font-bold text-sm">الدفع عند الاستلام</span>
           </label>
           <label class="flex-1 border-2 rounded-xl p-3 cursor-pointer flex items-center gap-2 transition"
             :class="form.payment==='transfer' ? 'border-green-500 bg-green-50' : 'border-gray-200'">
             <input type="radio" x-model="form.payment" value="transfer" class="hidden"/>
-            <i class="fas fa-mobile-alt text-green-500 text-xl"></i>
+            <i class="fas fa-mobile-alt text-green-500"></i>
             <span class="font-bold text-sm">تحويل إلكتروني</span>
           </label>
         </div>
@@ -471,7 +471,7 @@ function checkoutPage() {
       }
     },
 
-    /* ── رفع صورة الإيصال (endpoint عام مخصص للعملاء) ── */
+    /* ── رفع صورة الإيصال ── */
     async uploadReceipt(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -480,26 +480,24 @@ function checkoutPage() {
       this.uploadError    = '';
 
       try {
-        /* رفع الصورة إلى /api/upload-receipt (بدون admin token) */
         const formData = new FormData();
         formData.append('file', file);
 
         const uploadResp = await fetch('/api/upload-receipt', {
           method: 'POST',
-          body:   formData,   // المتصفح يضبط Content-Type تلقائياً مع الـ boundary
+          body: formData,
         });
         const uploadData = await uploadResp.json();
         if (!uploadData.success) throw new Error(uploadData.error || 'فشل رفع الصورة');
 
         this.paymentProof = uploadData.url;
 
-        /* حفظ الرابط على الطلب في قاعدة البيانات */
         const receiptResp = await fetch('/api/order-receipt', {
-          method:  'POST',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
+          body: JSON.stringify({
             order_number: this.orderNumber,
-            receipt_url:  uploadData.url,
+            receipt_url: uploadData.url,
           }),
         });
         const receiptData = await receiptResp.json();
@@ -510,11 +508,13 @@ function checkoutPage() {
         console.error('[uploadReceipt]', err);
       } finally {
         this.uploadingProof = false;
-        event.target.value  = '';
+        event.target.value = '';
       }
     },
 
-    /* ── إرسال الطلب ── */
+    /* ══════════════════════════════════════════════════════════════
+       ⭐ إرسال الطلب إلى /api/order - تم الإصلاح
+       ══════════════════════════════════════════════════════════════ */
     async submitOrder() {
       if (!this.validate()) return;
 
@@ -526,10 +526,14 @@ function checkoutPage() {
       const total    = this.subtotal + shipping;
 
       try {
+        console.log('[checkout] Sending order to /api/order...');
+        
         const response = await fetch('/api/order', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             name:     this.form.name.trim(),
             phone:    this.form.phone.trim(),
             gov:      this.form.gov,
@@ -551,21 +555,26 @@ function checkoutPage() {
           }),
         });
 
+        console.log('[checkout] Response status:', response.status);
+        
         const data = await response.json();
+        console.log('[checkout] Response data:', data);
 
-        if (!data.success) {
-          throw new Error(data.error || 'فشل إنشاء الطلب');
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || `فشل الطلب (${response.status})`);
         }
 
         /* نجاح ✅ */
         this.orderNumber = data.order.order_number;
+        console.log('[checkout] Order created:', this.orderNumber);
+        
         localStorage.removeItem('monsters_cart');
         this.orderDone = true;
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
       } catch (err) {
         this.submitError = err.message || 'حدث خطأ أثناء إرسال الطلب، حاول مرة أخرى.';
-        console.error('[submitOrder]', err);
+        console.error('[checkout] Error:', err);
       } finally {
         this.submitting = false;
       }
@@ -574,5 +583,11 @@ function checkoutPage() {
 }
 </script>
 
+<!-- WhatsApp Floating Button -->
+<a href="https://wa.me/201050805608" target="_blank" rel="noopener noreferrer"
+   style="position:fixed;bottom:24px;left:16px;z-index:999;width:52px;height:52px;border-radius:50%;background:#25d366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);text-decoration:none"
+   aria-label="تواصل عبر واتساب">
+  <i class="fab fa-whatsapp" style="font-size:26px"></i>
+</a>
 </body>
 </html>

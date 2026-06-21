@@ -17,7 +17,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    /* ── GET /api/categories/[id] ── */
     if (req.method === 'GET') {
       const { data, error } = await supabase
         .from('categories')
@@ -30,7 +29,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, category: data });
     }
 
-    /* ── PUT /api/categories/[id] ── */
     if (req.method === 'PUT') {
       if (!requireAdmin(req)) {
         return res.status(401).json({ success: false, error: 'غير مصرح.' });
@@ -65,7 +63,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, category: data });
     }
 
-    /* ── DELETE /api/categories/[id] ── */
     if (req.method === 'DELETE') {
       if (!requireAdmin(req)) {
         return res.status(401).json({ success: false, error: 'غير مصرح.' });

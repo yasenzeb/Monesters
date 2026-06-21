@@ -1,4 +1,4 @@
-// api/reviews.js — إدارة آراء العملاء عبر Supabase
+// api/reviews.js — إدارة آراء العملاء
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, requireAdmin, safeError } from './_auth.js';
 
@@ -12,7 +12,6 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   try {
-    /* ── GET /api/reviews ── */
     if (req.method === 'GET') {
       const { data, error } = await supabase
         .from('reviews')
@@ -23,7 +22,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, reviews: data || [] });
     }
 
-    /* ── POST /api/reviews ── */
     if (req.method === 'POST') {
       if (!requireAdmin(req)) {
         return res.status(401).json({ success: false, error: 'غير مصرح.' });
@@ -54,7 +52,6 @@ export default async function handler(req, res) {
       return res.status(201).json({ success: true, review: data });
     }
 
-    /* ── DELETE /api/reviews?id=xxx ── */
     if (req.method === 'DELETE') {
       if (!requireAdmin(req)) {
         return res.status(401).json({ success: false, error: 'غير مصرح.' });
