@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { setCorsHeaders, requireAdmin, safeError } from './_auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -6,14 +7,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    return res.status(204).end();
-  }
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setCorsHeaders(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   try {
     if (req.method === 'GET') {
@@ -44,7 +39,11 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { name, type, price, image_url, discount_type, discount_value, sizes, colors, gallery, main_image_index } = req.body;
+      if (!requireAdmin(req)) {
+        return res.status(401).json({ success: false, error: 'غير مصرح.' });
+      }
+
+      const { name, type, price, image_url, discount_type, discount_value, sizes, colors, gallery, main_image_index } = req.body || {};
 
       if (!name || !type || !price) {
         return res.status(400).json({ success: false, error: 'name, type, and price are required.' });
@@ -75,6 +74,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[API /products]', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: safeError(err) });
   }
 }

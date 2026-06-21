@@ -4,6 +4,21 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MONSTERS - تفاصيل المنتج</title>
+<meta name="description" content="تسوق أحدث الأحذية والكوتشيات من متجر MONSTERS بجودة مضمونة وشحن لكافة المحافظات."/>
+<link rel="canonical" href="https://monsters11.com/product.html" id="meta-canonical"/>
+<!-- Open Graph -->
+<meta property="og:type"        content="product"/>
+<meta property="og:site_name"   content="MONSTERS Store"/>
+<meta property="og:title"       content="MONSTERS - تفاصيل المنتج" id="og-title"/>
+<meta property="og:description" content="تسوق أحدث الأحذية والكوتشيات من متجر MONSTERS بجودة مضمونة." id="og-desc"/>
+<meta property="og:image"       content="https://monsters11.com/logo.jpeg" id="og-image"/>
+<meta property="og:url"         content="https://monsters11.com/product.html" id="og-url"/>
+<!-- Twitter Card -->
+<meta name="twitter:card"        content="summary_large_image"/>
+<meta name="twitter:site"        content="@monsters_store"/>
+<meta name="twitter:title"       content="MONSTERS - تفاصيل المنتج" id="tw-title"/>
+<meta name="twitter:description" content="تسوق أحدث الأحذية والكوتشيات من متجر MONSTERS." id="tw-desc"/>
+<meta name="twitter:image"       content="https://monsters11.com/logo.jpeg" id="tw-image"/>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght=300;400;700;900&display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -208,6 +223,26 @@ function productPage() {
       this.activeImage = imgs[0] || 'https://placehold.co/600x500/111/22c55e?text=MONSTERS';
 
       this.cartCount = this.getCart().length;
+
+      // ── Dynamic SEO meta tags ──
+      const p = this.product;
+      if (p && p.name) {
+        const title       = `${p.name} — MONSTERS Store`;
+        const desc        = `اشترِ ${p.name} بسعر ${p.price || ''} ج.م. شحن لكافة المحافظات من متجر MONSTERS.`;
+        const img         = this.allImages[0] || 'https://monsters11.com/logo.jpeg';
+        const url         = `https://monsters11.com/product.html?id=${encodeURIComponent(p.id || '')}`;
+        const setMeta = (id, val) => { const el = document.getElementById(id); if (el) el.setAttribute('content', val); };
+        document.title = title;
+        setMeta('og-title',  title);
+        setMeta('og-desc',   desc);
+        setMeta('og-image',  img);
+        setMeta('og-url',    url);
+        setMeta('tw-title',  title);
+        setMeta('tw-desc',   desc);
+        setMeta('tw-image',  img);
+        const canonical = document.getElementById('meta-canonical');
+        if (canonical) canonical.setAttribute('href', url);
+      }
     },
 
     calcPrice() {
@@ -254,5 +289,12 @@ function productPage() {
   }
 }
 </script>
+
+<!-- WhatsApp Floating Button -->
+<a href="https://wa.me/201050805608" target="_blank" rel="noopener noreferrer"
+   style="position:fixed;bottom:24px;left:16px;z-index:999;width:52px;height:52px;border-radius:50%;background:#25d366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.45);text-decoration:none"
+   aria-label="تواصل عبر واتساب">
+  <i class="fab fa-whatsapp" style="font-size:26px"></i>
+</a>
 </body>
 </html>

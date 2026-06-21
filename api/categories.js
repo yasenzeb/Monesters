@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { setCorsHeaders, requireAdmin, safeError } from './_auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -6,10 +7,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // ── CORS ──
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setCorsHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   try {
@@ -26,6 +24,10 @@ export default async function handler(req, res) {
 
     /* ── POST /api/categories ── */
     if (req.method === 'POST') {
+      if (!requireAdmin(req)) {
+        return res.status(401).json({ success: false, error: 'غير مصرح.' });
+      }
+
       const { name, slug } = req.body || {};
 
       if (!name || !slug) {
@@ -53,6 +55,10 @@ export default async function handler(req, res) {
 
     /* ── DELETE /api/categories?slug=xxx ── */
     if (req.method === 'DELETE') {
+      if (!requireAdmin(req)) {
+        return res.status(401).json({ success: false, error: 'غير مصرح.' });
+      }
+
       const { slug } = req.query;
 
       if (!slug) {
@@ -72,6 +78,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[API /categories]', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: safeError(err) });
   }
 }

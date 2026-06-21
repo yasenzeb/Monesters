@@ -9,15 +9,7 @@
     <priority>1.00</priority>
   </url>
 
-  <!-- صفحة سلة المشتريات -->
-  <url>
-    <loc>https://monsters11.com/cart.html</loc>
-    <lastmod>2026-06-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.80</priority>
-  </url>
-
-  <!-- صفحة تفاصيل المنتج (في حال وجودها بشكل منفصل) -->
+  <!-- صفحة تفاصيل المنتج -->
   <url>
     <loc>https://monsters11.com/product.html</loc>
     <lastmod>2026-06-16</lastmod>

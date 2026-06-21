@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { setCorsHeaders, requireAdmin, safeError } from '../_auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -6,10 +7,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // ── CORS ──
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setCorsHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const { id } = req.query;
@@ -34,6 +32,10 @@ export default async function handler(req, res) {
 
     /* ── PUT /api/categories/[id] ── */
     if (req.method === 'PUT') {
+      if (!requireAdmin(req)) {
+        return res.status(401).json({ success: false, error: 'غير مصرح.' });
+      }
+
       const { name, slug } = req.body || {};
       const updates = {};
 
@@ -65,6 +67,10 @@ export default async function handler(req, res) {
 
     /* ── DELETE /api/categories/[id] ── */
     if (req.method === 'DELETE') {
+      if (!requireAdmin(req)) {
+        return res.status(401).json({ success: false, error: 'غير مصرح.' });
+      }
+
       const { error } = await supabase
         .from('categories')
         .delete()
@@ -78,6 +84,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error(`[API /categories/${id}]`, err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: safeError(err) });
   }
 }
