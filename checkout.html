@@ -44,7 +44,6 @@
     transition: border-color .2s, background .2s;
   }
   .upload-zone:hover { border-color: #22c55e; background: #f0fdf4; }
-  .copy-done { color: #16a34a !important; }
   .pay-card {
     border-radius: 1rem;
     transition: transform .2s, box-shadow .2s;
@@ -54,9 +53,7 @@
 </head>
 <body class="bg-gray-50 text-black" x-data="checkoutPage()" x-init="init()">
 
-<!-- ══════════════════════════════════════════════════════ -->
-<!--  NAVBAR                                              -->
-<!-- ══════════════════════════════════════════════════════ -->
+<!-- ══ NAVBAR ══ -->
 <nav class="bg-white border-b shadow-sm sticky top-0 z-50">
   <div class="max-w-5xl mx-auto px-4 flex items-center justify-between h-16">
     <a href="index.html" class="bg-black rounded-lg px-3 py-1 flex items-center gap-1">
@@ -73,9 +70,7 @@
   </div>
 </nav>
 
-<!-- ══════════════════════════════════════════════════════ -->
-<!--  CHECKOUT FORM (hidden after order)                  -->
-<!-- ══════════════════════════════════════════════════════ -->
+<!-- ══ CHECKOUT FORM ══ -->
 <div x-show="!orderDone" class="max-w-5xl mx-auto px-4 py-10">
   <h1 class="text-3xl font-black mb-8">
     <i class="fas fa-map-marker-alt text-green-500 ml-2"></i>بيانات التوصيل
@@ -88,36 +83,41 @@
       <div class="mb-5">
         <label class="font-bold text-sm mb-2 block">الاسم الكامل *</label>
         <input x-model="form.name" type="text" placeholder="محمد أحمد"
-          class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-green-400 text-sm"/>
-        <p x-show="errors.name" class="text-red-500 text-xs mt-1">الاسم مطلوب</p>
+          class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-green-400 text-sm"
+          :class="errors.name ? 'border-red-400' : ''"/>
+        <p x-show="errors.name" class="text-red-500 text-xs mt-1 font-bold">الاسم مطلوب</p>
       </div>
 
       <div class="mb-5">
         <label class="font-bold text-sm mb-2 block">رقم الموبايل *</label>
         <input x-model="form.phone" type="tel" placeholder="01xxxxxxxxx"
-          class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-green-400 text-sm" dir="ltr"/>
-        <p x-show="errors.phone" class="text-red-500 text-xs mt-1">رقم الهاتف مطلوب</p>
+          class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-green-400 text-sm"
+          :class="errors.phone ? 'border-red-400' : ''" dir="ltr"/>
+        <p x-show="errors.phone" class="text-red-500 text-xs mt-1 font-bold">رقم الهاتف مطلوب</p>
       </div>
 
       <div class="mb-5">
         <label class="font-bold text-sm mb-2 block">المحافظة *</label>
         <select x-model="form.gov"
-          class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-green-400 text-sm bg-white">
+          class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-green-400 text-sm bg-white"
+          :class="errors.gov ? 'border-red-400' : ''">
           <option value="">اختر المحافظة</option>
-          <template x-for="g in govs"><option :value="g" x-text="g"></option></template>
+          <template x-for="g in govs" :key="g"><option :value="g" x-text="g"></option></template>
         </select>
-        <p x-show="errors.gov" class="text-red-500 text-xs mt-1">المحافظة مطلوبة</p>
+        <p x-show="errors.gov" class="text-red-500 text-xs mt-1 font-bold">المحافظة مطلوبة</p>
         <p x-show="form.gov" class="text-green-600 text-xs mt-2 font-bold">
-          <i class="fas fa-truck ml-1"></i>
-          تكلفة الشحن: EGP <span x-text="shippingCost"></span>
+          <i class="fas fa-truck ml-1"></i>تكلفة الشحن:
+          <span class="font-black">EGP <span x-text="shippingCost"></span></span>
         </p>
       </div>
 
       <div class="mb-5">
         <label class="font-bold text-sm mb-2 block">العنوان بالتفصيل *</label>
-        <textarea x-model="form.address" rows="3" placeholder="الشارع، الحي، المدينة..."
-          class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-green-400 text-sm resize-none"></textarea>
-        <p x-show="errors.address" class="text-red-500 text-xs mt-1">العنوان مطلوب</p>
+        <textarea x-model="form.address" rows="3"
+          placeholder="الشارع، الحي، المدينة..."
+          class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-green-400 text-sm resize-none"
+          :class="errors.address ? 'border-red-400' : ''"></textarea>
+        <p x-show="errors.address" class="text-red-500 text-xs mt-1 font-bold">العنوان مطلوب</p>
       </div>
 
       <div class="mb-6">
@@ -167,7 +167,7 @@
                 <p class="text-xs text-gray-400"
                   x-text="(item.size?'مقاس '+item.size+' ':'')+(item.color?'| لون '+item.color+' ':'')+'× '+(item.qty||1)"></p>
               </div>
-              <span class="font-black text-sm"
+              <span class="font-black text-sm whitespace-nowrap"
                 x-text="'EGP '+((item.finalPrice||item.price)*(item.qty||1))"></span>
             </div>
           </template>
@@ -191,12 +191,10 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════ -->
-<!--  SUCCESS PAGE                                        -->
-<!-- ══════════════════════════════════════════════════════ -->
+<!-- ══ SUCCESS PAGE ══ -->
 <div x-show="orderDone" x-transition class="max-w-2xl mx-auto px-4 py-10 pb-20">
 
-  <!-- ── Header Check ── -->
+  <!-- Check Icon -->
   <div class="text-center mb-7 anim-pop">
     <div class="check-ring w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg">
       <i class="fas fa-check text-white text-4xl"></i>
@@ -209,7 +207,7 @@
     </div>
   </div>
 
-  <!-- ── Order Status Notice ── -->
+  <!-- Shipping Notice -->
   <div class="anim-up-1 bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-4">
     <div class="flex items-start gap-3">
       <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -238,16 +236,14 @@
           </div>
           <div class="mt-3 bg-amber-100 rounded-xl px-4 py-3 flex items-center justify-between">
             <span class="text-amber-800 font-bold text-sm">رسوم الشحن المستحقة:</span>
-            <span class="font-black text-amber-900 text-lg">
-              EGP <span x-text="savedShipping"></span>
-            </span>
+            <span class="font-black text-amber-900 text-lg">EGP <span x-text="savedShipping"></span></span>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── Payment Methods ── -->
+  <!-- Payment Methods -->
   <div class="anim-up-2 bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-4">
     <div class="flex items-center gap-2 mb-1">
       <div class="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center">
@@ -308,7 +304,7 @@
     </div>
   </div>
 
-  <!-- ── Receipt Upload ── -->
+  <!-- Receipt Upload -->
   <div class="anim-up-3 bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-4">
     <div class="flex items-center gap-2 mb-1">
       <div class="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center">
@@ -319,14 +315,14 @@
     </div>
     <p class="text-gray-400 text-sm mb-4 mr-11">ارفع إيصال التحويل لتسريع تجهيز وشحن طلبك</p>
 
-    <!-- Before upload -->
+    <!-- قبل الرفع -->
     <div x-show="!paymentProof">
       <label class="block cursor-pointer">
         <div class="upload-zone p-6 text-center" :class="uploadingProof ? 'opacity-50 cursor-not-allowed' : ''">
           <div x-show="!uploadingProof">
             <i class="fas fa-cloud-upload-alt text-4xl text-gray-300 mb-3 block"></i>
             <p class="font-black text-gray-600 mb-1">اضغط هنا لرفع صورة الإيصال</p>
-            <p class="text-xs text-gray-400">JPG, PNG, GIF — حتى 10 MB</p>
+            <p class="text-xs text-gray-400">JPG, PNG, GIF, WEBP — حتى 10 MB</p>
           </div>
           <div x-show="uploadingProof" class="py-2">
             <i class="fas fa-spinner fa-spin text-3xl text-green-500 mb-2 block"></i>
@@ -337,14 +333,13 @@
             :disabled="uploadingProof"/>
         </div>
       </label>
-      <p x-show="uploadError"
-         class="mt-2 text-red-500 text-xs font-bold flex items-center gap-1">
+      <p x-show="uploadError" class="mt-2 text-red-500 text-xs font-bold flex items-center gap-1">
         <i class="fas fa-exclamation-circle"></i>
         <span x-text="uploadError"></span>
       </p>
     </div>
 
-    <!-- After upload -->
+    <!-- بعد الرفع -->
     <div x-show="paymentProof" class="text-center">
       <div class="bg-green-50 border border-green-200 rounded-2xl p-5">
         <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -358,7 +353,7 @@
     </div>
   </div>
 
-  <!-- ── Quick Summary ── -->
+  <!-- Quick Summary -->
   <div class="anim-up-4 bg-gray-900 text-white rounded-2xl p-5 mb-5">
     <h3 class="font-black text-sm mb-3 text-gray-300 uppercase tracking-widest">ملخص الطلب</h3>
     <div class="space-y-1.5 text-sm border-b border-gray-700 pb-3 mb-3">
@@ -385,7 +380,7 @@
     </div>
   </div>
 
-  <!-- ── Return Button ── -->
+  <!-- Return Button -->
   <div class="anim-up-5">
     <a href="index.html"
       class="flex items-center justify-center gap-2 w-full bg-black text-white font-black py-4 rounded-2xl hover:bg-green-500 hover:text-black transition text-lg">
@@ -400,11 +395,9 @@
 
 </div>
 
-<!-- ══════════════════════════════════════════════════════ -->
-<!--  SCRIPT                                              -->
-<!-- ══════════════════════════════════════════════════════ -->
+<!-- ══ SCRIPT ══ -->
 <script>
-/* ── Shipping Rates ── */
+/* ── أسعار الشحن ── */
 const SHIPPING_RATES = {
   'جنوب سيناء': 160, 'مطروح': 160, 'الوادي الجديد': 160, 'البحر الأحمر': 160,
   'القاهرة': 95,  'الجيزة': 95,  'بورسعيد': 95, 'السويس': 95,
@@ -412,50 +405,43 @@ const SHIPPING_RATES = {
   'الأقصر': 120,  'أسوان': 120,  'بني سويف': 120, 'الفيوم': 120,
   'الإسكندرية': 120, 'الدقهلية': 120, 'البحيرة': 120,  'الغربية': 120,
   'الإسماعيلية': 120, 'المنوفية': 120, 'القليوبية': 120, 'دمياط': 120,
-  'الشرقية': 120, 'كفر الشيخ': 120, 'شمال سيناء': 120
+  'الشرقية': 120, 'كفر الشيخ': 120, 'شمال سيناء': 120,
 };
 
-/* ── Alpine Component ── */
 function checkoutPage() {
   return {
-    /* ── State ── */
-    cart: [],
-    form: { name:'', phone:'', gov:'', address:'', notes:'', payment:'cod' },
-    errors: { name:false, phone:false, gov:false, address:false },
-    govs: Object.keys(SHIPPING_RATES),
+    /* ── الحالة ── */
+    cart:        [],
+    form:        { name:'', phone:'', gov:'', address:'', notes:'', payment:'cod' },
+    errors:      { name:false, phone:false, gov:false, address:false },
+    govs:        Object.keys(SHIPPING_RATES),
 
     submitting:  false,
     submitError: '',
     orderDone:   false,
     orderNumber: '',
 
-    /* success-page state */
+    /* success-page */
     savedShipping:  0,
     paymentProof:   null,
     uploadingProof: false,
     uploadError:    '',
     copiedPhone:    '',
 
-    /* ── Init ── */
+    /* ── تهيئة ── */
     init() {
-      try { this.cart = JSON.parse(localStorage.getItem('monsters_cart')||'[]'); } catch {}
-      if (!this.cart.length) {
-        this.cart = [{
-          id:'test_item', name:'منتج تجريبي نشط لموقع الوحوش',
-          price:500, qty:1, size:'XL', color:'أسود'
-        }];
-      }
+      try { this.cart = JSON.parse(localStorage.getItem('monsters_cart') || '[]'); } catch { this.cart = []; }
     },
 
-    /* ── Computed ── */
+    /* ── حسابات ── */
     get subtotal() {
-      return this.cart.reduce((s,i) => s + (i.finalPrice||i.price)*(i.qty||1), 0);
+      return this.cart.reduce((s, i) => s + (i.finalPrice || i.price) * (i.qty || 1), 0);
     },
     get shippingCost() {
       return SHIPPING_RATES[this.form.gov] || 0;
     },
 
-    /* ── Validate ── */
+    /* ── التحقق من البيانات ── */
     validate() {
       this.errors.name    = !this.form.name.trim();
       this.errors.phone   = !this.form.phone.trim();
@@ -464,7 +450,7 @@ function checkoutPage() {
       return !Object.values(this.errors).some(Boolean);
     },
 
-    /* ── Copy to Clipboard ── */
+    /* ── نسخ الرقم ── */
     copyToClipboard(text, key) {
       const done = () => {
         this.copiedPhone = key;
@@ -485,7 +471,7 @@ function checkoutPage() {
       }
     },
 
-    /* ── Upload Receipt ── */
+    /* ── رفع صورة الإيصال (endpoint عام مخصص للعملاء) ── */
     async uploadReceipt(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -494,84 +480,75 @@ function checkoutPage() {
       this.uploadError    = '';
 
       try {
-        /* Convert to base64 */
-        const base64 = await new Promise((res, rej) => {
-          const r = new FileReader();
-          r.onload  = () => res(r.result);
-          r.onerror = rej;
-          r.readAsDataURL(file);
-        });
+        /* رفع الصورة إلى /api/upload-receipt (بدون admin token) */
+        const formData = new FormData();
+        formData.append('file', file);
 
-        /* Upload via project API */
-        const resp   = await fetch('/api/upload', {
+        const uploadResp = await fetch('/api/upload-receipt', {
+          method: 'POST',
+          body:   formData,   // المتصفح يضبط Content-Type تلقائياً مع الـ boundary
+        });
+        const uploadData = await uploadResp.json();
+        if (!uploadData.success) throw new Error(uploadData.error || 'فشل رفع الصورة');
+
+        this.paymentProof = uploadData.url;
+
+        /* حفظ الرابط على الطلب في قاعدة البيانات */
+        const receiptResp = await fetch('/api/order-receipt', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ data: base64, fileName: file.name })
-        });
-        const result = await resp.json();
-        if (!result.success) throw new Error(result.error || 'فشل الرفع');
-
-        this.paymentProof = result.url;
-
-        /* ── SEND TO /api/order-receipt (server handles webhook) ── */
-        const receiptResp = await fetch('/api/order-receipt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body:    JSON.stringify({
             order_number: this.orderNumber,
-            receipt_url: result.url
-          })
+            receipt_url:  uploadData.url,
+          }),
         });
         const receiptData = await receiptResp.json();
-        if (!receiptData.success) {
-          throw new Error(receiptData.error || 'فشل حفظ الإيصال');
-        }
+        if (!receiptData.success) throw new Error(receiptData.error || 'فشل حفظ الإيصال');
 
       } catch (err) {
         this.uploadError = 'فشل رفع الصورة: ' + (err.message || 'خطأ غير متوقع');
         console.error('[uploadReceipt]', err);
       } finally {
         this.uploadingProof = false;
-        event.target.value = '';
+        event.target.value  = '';
       }
     },
 
-    /* ── Submit Order ── */
+    /* ── إرسال الطلب ── */
     async submitOrder() {
       if (!this.validate()) return;
 
-      this.submitting     = true;
-      this.submitError    = '';
-      this.savedShipping  = this.shippingCost;
+      this.submitting    = true;
+      this.submitError   = '';
+      this.savedShipping = this.shippingCost;
 
       const shipping = this.shippingCost;
       const total    = this.subtotal + shipping;
 
       try {
-        /* ── Send to /api/order ── */
         const response = await fetch('/api/order', {
-          method: 'POST',
+          method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: this.form.name.trim(),
-            phone: this.form.phone.trim(),
-            gov: this.form.gov,
-            address: this.form.address.trim(),
-            notes: this.form.notes.trim(),
-            payment: this.form.payment,
-            items: this.cart.map(item => ({
-              id: item.id,
-              name: item.name,
-              price: item.price,
-              qty: item.qty || 1,
-              size: item.size || null,
-              color: item.color || null,
-              finalPrice: item.finalPrice || item.price
+          body:    JSON.stringify({
+            name:     this.form.name.trim(),
+            phone:    this.form.phone.trim(),
+            gov:      this.form.gov,
+            address:  this.form.address.trim(),
+            notes:    this.form.notes.trim(),
+            payment:  this.form.payment,
+            items:    this.cart.map(item => ({
+              id:         item.id,
+              name:       item.name,
+              price:      item.price,
+              qty:        item.qty || 1,
+              size:       item.size  || null,
+              color:      item.color || null,
+              finalPrice: item.finalPrice || item.price,
             })),
             subtotal: this.subtotal,
             shipping: shipping,
-            total: total
-          })
+            total:    total,
+          }),
         });
 
         const data = await response.json();
@@ -580,21 +557,19 @@ function checkoutPage() {
           throw new Error(data.error || 'فشل إنشاء الطلب');
         }
 
-        /* ── Success ── */
+        /* نجاح ✅ */
         this.orderNumber = data.order.order_number;
         localStorage.removeItem('monsters_cart');
         this.orderDone = true;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
       } catch (err) {
-        this.submitError = err.message || 'حدث خطأ أثناء إرسال الطلب';
+        this.submitError = err.message || 'حدث خطأ أثناء إرسال الطلب، حاول مرة أخرى.';
         console.error('[submitOrder]', err);
       } finally {
         this.submitting = false;
-        if (this.orderDone) {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
       }
-    }
+    },
   };
 }
 </script>

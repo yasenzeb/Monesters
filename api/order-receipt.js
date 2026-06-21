@@ -1,63 +1,75 @@
-// api/order-receipt.js
+// api/order-receipt.js — حفظ رابط إيصال التحويل على الطلب
 import { createClient } from '@supabase/supabase-js';
-import { setCorsHeaders, safeError } from './_auth.js';
+import { setCorsHeaders, isRateLimited, safeError } from './_auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// أنماط URLs المسموح بها للإيصالات (Cloudinary فقط)
+// أنماط URLs المسموح بها (Cloudinary فقط)
 const ALLOWED_URL_PATTERNS = [
   /^https:\/\/res\.cloudinary\.com\//,
-  /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co\/storage\//
+  /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co\/storage\//,
 ];
 
 function isAllowedReceiptUrl(url) {
   if (!url || typeof url !== 'string') return false;
-  return ALLOWED_URL_PATTERNS.some(pattern => pattern.test(url));
+  return ALLOWED_URL_PATTERNS.some(p => p.test(url));
 }
 
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
-
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+
+  // ── Rate Limit: 10 طلبات / 10 دقائق لكل IP ──
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.socket?.remoteAddress
+    || 'unknown';
+  if (isRateLimited(`order-receipt:${ip}`, 10, 10 * 60 * 1000)) {
+    return res.status(429).json({ success: false, error: 'محاولات كثيرة، حاول لاحقاً.' });
   }
 
   try {
     const { order_number, receipt_url } = req.body || {};
 
     if (!order_number || !receipt_url) {
-      return res.status(400).json({ success: false, error: 'بيانات ناقصة' });
+      return res.status(400).json({ success: false, error: 'بيانات ناقصة.' });
     }
 
-    // ── التحقق من صيغة رقم الطلب ──
-    const safeOrderNumber = String(order_number).replace(/[^A-Z0-9-]/g, '').substring(0, 30);
+    // ── تنظيف رقم الطلب ──
+    const safeOrderNumber = String(order_number)
+      .replace(/[^A-Z0-9\-]/g, '')
+      .substring(0, 30);
+
     if (!safeOrderNumber) {
-      return res.status(400).json({ success: false, error: 'رقم طلب غير صحيح' });
+      return res.status(400).json({ success: false, error: 'رقم الطلب غير صحيح.' });
     }
 
-    // ── التحقق من أن رابط الإيصال من مصدر موثوق ──
+    // ── التحقق من رابط الإيصال ──
     if (!isAllowedReceiptUrl(receipt_url)) {
-      return res.status(400).json({ success: false, error: 'رابط الإيصال غير مسموح به' });
+      return res.status(400).json({ success: false, error: 'رابط الإيصال غير مسموح به.' });
     }
 
     const { data, error } = await supabase
       .from('orders')
       .update({ receipt_url: receipt_url.substring(0, 1000) })
       .eq('order_number', safeOrderNumber)
-      .select()
+      .select('order_number')
       .single();
 
     if (error) throw error;
-
     if (!data) {
-      return res.status(404).json({ success: false, error: 'الطلب غير موجود' });
+      return res.status(404).json({ success: false, error: 'الطلب غير موجود.' });
     }
 
-    return res.status(200).json({ success: true, order: { order_number: data.order_number } });
+    return res.status(200).json({
+      success: true,
+      order: { order_number: data.order_number },
+    });
 
   } catch (err) {
     console.error('[API /order-receipt]', err);
