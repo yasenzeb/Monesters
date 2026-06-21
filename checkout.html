@@ -17,7 +17,6 @@
     font-family: 'Font Awesome 5 Free' !important;
     font-weight: 900 !important;
   }
-  /* ── Success Page Animations ── */
   @keyframes popIn {
     0%  { transform: scale(0.5); opacity: 0; }
     80% { transform: scale(1.08); }
@@ -39,19 +38,13 @@
   .anim-up-4 { animation: slideUp .45s .60s ease both; }
   .anim-up-5 { animation: slideUp .45s .75s ease both; }
   .check-ring { animation: pulse-ring 1.6s .5s ease-out; }
-
-  /* Upload drag zone */
   .upload-zone {
     border: 2px dashed #d1d5db;
     border-radius: 1rem;
     transition: border-color .2s, background .2s;
   }
   .upload-zone:hover { border-color: #22c55e; background: #f0fdf4; }
-
-  /* Copy btn feedback */
   .copy-done { color: #16a34a !important; }
-
-  /* Payment method card */
   .pay-card {
     border-radius: 1rem;
     transition: transform .2s, box-shadow .2s;
@@ -422,23 +415,6 @@ const SHIPPING_RATES = {
   'الشرقية': 120, 'كفر الشيخ': 120, 'شمال سيناء': 120
 };
 
-/* ── Pushover Keys ── */
-const P_USER  = 'upun68mxemv5e42f5dxivwf4tmpqdj';
-const P_TOKEN = 'akb2ymien31hkq7i63mw9or1pgwszo';
-
-async function pushover(title, message) {
-  const fd = new FormData();
-  fd.append('token',    P_TOKEN);
-  fd.append('user',     P_USER);
-  fd.append('title',    title);
-  fd.append('message',  message);
-  fd.append('priority', '1');
-  fd.append('sound',    'cashregister');
-  try {
-    await fetch('https://api.pushover.net/1/messages.json', { method:'POST', body: fd });
-  } catch (e) { console.error('[pushover]', e); }
-}
-
 /* ── Alpine Component ── */
 function checkoutPage() {
   return {
@@ -537,29 +513,25 @@ function checkoutPage() {
 
         this.paymentProof = result.url;
 
-        /* Notify admin about receipt */
-        const msg =
-`━━━━━━━━━━━━━━ 📎 صورة تحويل جديدة ━━━━━━━━━━━━━━
-🆔 رقم الطلب : ${this.orderNumber}
-👤 الاسم     : ${this.form.name.trim()}
-📞 الهاتف    : ${this.form.phone.trim()}
-📍 المحافظة  : ${this.form.gov}
-💰 رسوم الشحن: EGP ${this.savedShipping}
-
-🖼️ صورة التحويل:
-${result.url}
-
-━━━━━━━━━━━━━━ 📩 رسالة للعميل ━━━━━━━━━━━━━━
-تم استلام صورة التحويل بنجاح وجاري تجهيز الطلب للشحن`;
-
-        await pushover(`💳 إيصال تحويل — طلب ${this.orderNumber}`, msg);
+        /* ── SEND TO /api/order-receipt (server handles webhook) ── */
+        const receiptResp = await fetch('/api/order-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_number: this.orderNumber,
+            receipt_url: result.url
+          })
+        });
+        const receiptData = await receiptResp.json();
+        if (!receiptData.success) {
+          throw new Error(receiptData.error || 'فشل حفظ الإيصال');
+        }
 
       } catch (err) {
         this.uploadError = 'فشل رفع الصورة: ' + (err.message || 'خطأ غير متوقع');
         console.error('[uploadReceipt]', err);
       } finally {
         this.uploadingProof = false;
-        /* Reset file input so user can re-upload if needed */
         event.target.value = '';
       }
     },
@@ -575,48 +547,53 @@ ${result.url}
       const shipping = this.shippingCost;
       const total    = this.subtotal + shipping;
 
-      this.orderNumber = 'M-' + Math.floor(100000 + Math.random() * 900000);
+      try {
+        /* ── Send to /api/order ── */
+        const response = await fetch('/api/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: this.form.name.trim(),
+            phone: this.form.phone.trim(),
+            gov: this.form.gov,
+            address: this.form.address.trim(),
+            notes: this.form.notes.trim(),
+            payment: this.form.payment,
+            items: this.cart.map(item => ({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              qty: item.qty || 1,
+              size: item.size || null,
+              color: item.color || null,
+              finalPrice: item.finalPrice || item.price
+            })),
+            subtotal: this.subtotal,
+            shipping: shipping,
+            total: total
+          })
+        });
 
-      /* Build items text */
-      const itemsText = this.cart.map(i => {
-        const parts = [];
-        if (i.size)  parts.push(`مقاس: ${i.size}`);
-        if (i.color) parts.push(`لون: ${i.color}`);
-        const detail = parts.length ? ` [${parts.join(' — ')}]` : '';
-        return `• ${i.name}${detail}\n  الكمية: ${i.qty||1} | السعر: EGP ${(i.finalPrice||i.price)*(i.qty||1)}`;
-      }).join('\n\n');
+        const data = await response.json();
 
-      const paymentLabel = this.form.payment === 'cod' ? 'الدفع عند الاستلام' : 'تحويل إلكتروني';
+        if (!data.success) {
+          throw new Error(data.error || 'فشل إنشاء الطلب');
+        }
 
-      /* ── Admin Message ── */
-      const adminMsg =
-`━━━━━━━━━━━━━━ 🛒 طلب جديد MONSTERS ━━━━━━━━━━━━━━
-🆔 رقم الطلب  : ${this.orderNumber}
-👤 الاسم      : ${this.form.name.trim()}
-📞 الهاتف     : ${this.form.phone.trim()}
-📍 المحافظة   : ${this.form.gov}
-🏠 العنوان    : ${this.form.address.trim()}
-💳 طريقة الدفع: ${paymentLabel}
-📝 ملاحظات    : ${this.form.notes.trim() || 'لا يوجد'}
+        /* ── Success ── */
+        this.orderNumber = data.order.order_number;
+        localStorage.removeItem('monsters_cart');
+        this.orderDone = true;
 
-📦 المنتجات:
-${itemsText}
-
-💰 المجموع   : EGP ${this.subtotal}
-🚚 الشحن     : EGP ${shipping}
-✅ الإجمالي  : EGP ${total}
-
-━━━━━━━━━━━━━━ 📩 نسخة جاهزة للعميل ━━━━━━━━━━━━━━
-تم حجز الطلب بنجاح ويمكنك إرسال صورة التحويل لتسريع الشحن`;
-
-      await pushover('🛒 طلب جديد من الموقع!', adminMsg);
-
-      localStorage.removeItem('monsters_cart');
-      this.orderDone  = true;
-      this.submitting = false;
-
-      /* Scroll to top */
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        this.submitError = err.message || 'حدث خطأ أثناء إرسال الطلب';
+        console.error('[submitOrder]', err);
+      } finally {
+        this.submitting = false;
+        if (this.orderDone) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
     }
   };
 }
