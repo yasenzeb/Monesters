@@ -16,7 +16,6 @@ function generateOrderNumber() {
 }
 
 // ── إرسال إشعار Pushover ──
-// Env vars مطلوبة: PUSHOVER_TOKEN, PUSHOVER_USER
 async function notifyPushover(title, message) {
   const token = process.env.PUSHOVER_TOKEN;
   const user  = process.env.PUSHOVER_USER;
@@ -41,18 +40,53 @@ async function notifyPushover(title, message) {
 }
 
 export default async function handler(req, res) {
+  console.log('[API /order]', {
+    method: req.method,
+    headers: {
+      origin: req.headers['origin'],
+      contentType: req.headers['content-type'],
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // ⭐ STEP 1: Set CORS headers FIRST (قبل أي شيء)
+  // ══════════════════════════════════════════════════════════════
   setCorsHeaders(req, res);
-  if (req.method === 'OPTIONS') return res.status(204).end();
+
+  // ══════════════════════════════════════════════════════════════
+  // ⭐ STEP 2: Handle OPTIONS preflight request
+  // ══════════════════════════════════════════════════════════════
+  if (req.method === 'OPTIONS') {
+    console.log('[API /order] Handling OPTIONS preflight');
+    return res.status(200).end();  // ✅ 200 وليس 204
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // ⭐ STEP 3: Check HTTP method (يجب يكون POST)
+  // ══════════════════════════════════════════════════════════════
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+    console.error('[API /order] Invalid method:', req.method);
+    return res.status(405).json({
+      success: false,
+      error: 'Method not allowed — استخدم POST فقط',
+      receivedMethod: req.method,
+      allowedMethods: ['POST', 'OPTIONS']
+    });
   }
 
   // ── Rate Limit: 5 طلبات/ساعة لكل IP ──
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
     || req.socket?.remoteAddress
     || 'unknown';
+  
+  console.log('[API /order] Client IP:', ip);
+  
   if (isRateLimited(`order:${ip}`, 5, 60 * 60 * 1000)) {
-    return res.status(429).json({ success: false, error: 'محاولات كثيرة، حاول لاحقاً.' });
+    console.warn('[API /order] Rate limit exceeded for IP:', ip);
+    return res.status(429).json({ 
+      success: false, 
+      error: 'محاولات كثيرة، حاول لاحقاً.' 
+    });
   }
 
   try {
@@ -61,15 +95,38 @@ export default async function handler(req, res) {
       payment, items, subtotal, shipping, total,
     } = req.body || {};
 
+    console.log('[API /order] Received data:', {
+      name: name ? '✓' : '✗',
+      phone: phone ? '✓' : '✗',
+      gov: gov ? '✓' : '✗',
+      address: address ? '✓' : '✗',
+      payment: payment ? '✓' : '✗',
+      items: Array.isArray(items) ? items.length : '✗',
+    });
+
     // ── التحقق من المدخلات الأساسية ──
     if (!name?.trim() || !phone?.trim() || !gov || !address?.trim() || !payment) {
-      return res.status(400).json({ success: false, error: 'بيانات ناقصة.' });
+      console.error('[API /order] Missing required fields');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'بيانات ناقصة - تأكد من: الاسم، الهاتف، المحافظة، العنوان، طريقة الدفع'
+      });
     }
+
     if (!['cod', 'transfer'].includes(payment)) {
-      return res.status(400).json({ success: false, error: 'طريقة دفع غير مقبولة.' });
+      console.error('[API /order] Invalid payment method:', payment);
+      return res.status(400).json({ 
+        success: false, 
+        error: 'طريقة دفع غير مقبولة - استخدم cod أو transfer' 
+      });
     }
+
     if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
-      return res.status(400).json({ success: false, error: 'السلة غير صالحة.' });
+      console.error('[API /order] Invalid items array');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'السلة غير صالحة - يجب أن تحتوي على 1-50 منتج' 
+      });
     }
 
     // ── تنظيف بنود الطلب ──
@@ -90,8 +147,17 @@ export default async function handler(req, res) {
     const parsedShipping = Math.max(0, Number(shipping) || 0);
     const parsedTotal    = Math.round(calcSubtotal + parsedShipping);
 
-    const orderNumber = generateOrderNumber();
+    console.log('[API /order] Calculations:', {
+      calcSubtotal,
+      parsedShipping,
+      parsedTotal,
+      itemsCount: safeItems.length
+    });
 
+    const orderNumber = generateOrderNumber();
+    console.log('[API /order] Generated order number:', orderNumber);
+
+    // ── إدراج الطلب في Supabase ──
     const { data, error } = await supabase
       .from('orders')
       .insert([{
@@ -111,15 +177,21 @@ export default async function handler(req, res) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[API /order] Supabase insert error:', error);
+      throw error;
+    }
 
-    // ── إشعار Pushover ──
+    console.log('[API /order] Order created successfully:', data.id);
+
+    // ── إشعار Pushover (بدون مقاطعة الـ response) ──
     const payLabel  = payment === 'cod' ? 'عند الاستلام' : 'تحويل إلكتروني';
     const itemsText = safeItems
       .map(i => `• ${i.name} ×${i.qty} = EGP ${i.finalPrice * i.qty}`)
       .join('\n');
 
-    await notifyPushover(
+    // أرسل الإشعار بدون انتظار
+    notifyPushover(
       `🛒 طلب جديد — MONSTERS`,
       [
         `رقم: ${orderNumber}`,
@@ -131,8 +203,10 @@ export default async function handler(req, res) {
         ``,
         itemsText,
       ].join('\n')
-    );
+    ).catch(e => console.error('[Pushover Error]', e));
 
+    // ── الرد الناجح ──
+    console.log('[API /order] SUCCESS - Returning response');
     return res.status(201).json({
       success: true,
       order: {
@@ -142,7 +216,11 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('[API POST /order]', err);
-    return res.status(500).json({ success: false, error: safeError(err) });
+    console.error('[API /order] CRITICAL ERROR:', err);
+    return res.status(500).json({ 
+      success: false, 
+      error: safeError(err),
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 }
