@@ -67,9 +67,13 @@ async function sendPushoverNotification(title, message) {
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// ⭐ MAIN HANDLER - مع إصلاح كامل لـ OPTIONS
+// ══════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
   console.log('[API /order] Request received:', {
     method: req.method,
+    url: req.url,
     headers: {
       origin: req.headers['origin'],
       contentType: req.headers['content-type'],
@@ -77,27 +81,37 @@ export default async function handler(req, res) {
   });
 
   // ══════════════════════════════════════════════════════════════
-  // ⭐ STEP 1: Set CORS headers FIRST
-  // ══════════════════════════════════════════════════════════════
-  setCorsHeaders(req, res);
-
-  // ══════════════════════════════════════════════════════════════
-  // ⭐ STEP 2: Handle OPTIONS preflight request
+  // ⭐ STEP 1: Handle OPTIONS preflight request - منفصل تماماً
   // ══════════════════════════════════════════════════════════════
   if (req.method === 'OPTIONS') {
-    console.log('[API /order] OPTIONS preflight - returning 200');
-    res.status(200).end();
-    return;
+    console.log('[API /order] ✅ OPTIONS preflight - returning 200 with CORS headers');
+    
+    // إضافة جميع CORS headers المطلوبة
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-token, x-admin-password');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    
+    return res.status(200).end();  // ✅ استخدم 200 وليس 204
   }
 
   // ══════════════════════════════════════════════════════════════
-  // ⭐ STEP 3: Only POST allowed
+  // ⭐ STEP 2: Set CORS headers for all other requests
+  // ══════════════════════════════════════════════════════════════
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-token, x-admin-password');
+
+  // ══════════════════════════════════════════════════════════════
+  // ⭐ STEP 3: Only POST allowed for data requests
   // ══════════════════════════════════════════════════════════════
   if (req.method !== 'POST') {
-    console.error('[API /order] Invalid method:', req.method);
+    console.error('[API /order] ❌ Invalid method:', req.method);
     return res.status(405).json({
       success: false,
       error: 'Method not allowed — استخدم POST فقط',
+      receivedMethod: req.method,
+      allowedMethods: ['POST', 'OPTIONS']
     });
   }
 
@@ -208,7 +222,7 @@ export default async function handler(req, res) {
     console.log('[API /order] Order created successfully:', data.id);
 
     // ══════════════════════════════════════════════════════════════
-    // ⭐ PHASE 1: إرسال إشعار Pushover من السيرفر
+    // ⭐ إرسال إشعار Pushover من السيرفر
     // ══════════════════════════════════════════════════════════════
     const payLabel = payment === 'cod' ? 'الدفع عند الاستلام' : 'تحويل إلكتروني';
     const itemsText = safeItems
