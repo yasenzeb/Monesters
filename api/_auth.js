@@ -1,4 +1,5 @@
 // api/_auth.js — مساعد مشترك للأمان في جميع ملفات API
+import { createHmac, timingSafeEqual } from 'crypto';
 
 const ALLOWED_ORIGINS = [
   'https://monsters11.com',
@@ -7,7 +8,6 @@ const ALLOWED_ORIGINS = [
 
 /**
  * يضع CORS headers مقيدة بالدومين المصرح به.
- * في بيئة التطوير يقبل أي أصل.
  */
 export function setCorsHeaders(req, res) {
   const origin = req.headers['origin'] || '';
@@ -16,26 +16,88 @@ export function setCorsHeaders(req, res) {
 
   res.setHeader('Access-Control-Allow-Origin',  allowed || ALLOWED_ORIGINS[0]);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-admin-password');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-admin-password,x-admin-token');
   res.setHeader('Vary', 'Origin');
 }
 
 /**
- * يتحقق من وجود كلمة المرور الصحيحة في الـ header.
- * يُرجع true عند النجاح، false عند الفشل.
+ * ── PHASE 3: Token Generation ──
+ * Generate JWT-like token using HMAC (no external libs)
+ */
+export function generateToken() {
+  const secret = process.env.ADMIN_TOKEN_SECRET || process.env.ADMIN_PASSWORD;
+  if (!secret) {
+    throw new Error('ADMIN_TOKEN_SECRET or ADMIN_PASSWORD not set');
+  }
+
+  const exp = Math.floor(Date.now() / 1000) + (2 * 60 * 60); // 2 hours
+  const iat = Math.floor(Date.now() / 1000);
+  const payload = { exp, iat };
+
+  const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+  const signature = createHmac('sha256', secret)
+    .update(payloadBase64)
+    .digest('hex');
+
+  return `${payloadBase64}.${signature}`;
+}
+
+/**
+ * ── PHASE 3: Token Verification ──
+ * Verify token signature and expiration
+ */
+export function verifyToken(token) {
+  if (!token || typeof token !== 'string') return false;
+
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+
+  const [payloadBase64, signature] = parts;
+  const secret = process.env.ADMIN_TOKEN_SECRET || process.env.ADMIN_PASSWORD;
+  if (!secret) return false;
+
+  try {
+    // Verify signature
+    const expectedSignature = createHmac('sha256', secret)
+      .update(payloadBase64)
+      .digest('hex');
+
+    const sigBuf = Buffer.from(signature, 'hex');
+    const expBuf = Buffer.from(expectedSignature, 'hex');
+    if (sigBuf.length !== expBuf.length) return false;
+    if (!timingSafeEqual(sigBuf, expBuf)) return false;
+
+    // Verify expiration
+    const payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) return false;
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ── PHASE 3: Updated requireAdmin ──
+ * Verify token from x-admin-token header
+ * Fallback to password for backward compatibility (optional)
  */
 export function requireAdmin(req) {
-  const adminPw = process.env.ADMIN_PASSWORD;
-  if (!adminPw) {
-    // إذا لم تُعيَّن متغير البيئة، ارفض في الإنتاج دائماً
-    if (process.env.NODE_ENV === 'production') return false;
-    return true; // بيئة تطوير فقط
+  // Primary: check token
+  const token = req.headers['x-admin-token'] || '';
+  if (token && verifyToken(token)) {
+    return true;
   }
+
+  // Fallback: check password (for backward compatibility during transition)
+  const adminPw = process.env.ADMIN_PASSWORD;
+  if (!adminPw) return false;
+
   const provided = req.headers['x-admin-password'] || '';
-  // مقارنة آمنة ضد timing attacks
   if (provided.length !== adminPw.length) return false;
+
   try {
-    const { timingSafeEqual } = require('crypto');
     return timingSafeEqual(Buffer.from(provided), Buffer.from(adminPw));
   } catch {
     return provided === adminPw;
@@ -50,15 +112,9 @@ export function safeError(err) {
   return 'حدث خطأ داخلي، يرجى المحاولة مرة أخرى.';
 }
 
-// ── Rate limiting بسيط في الذاكرة (per serverless instance) ──
+// ── Rate limiting ──
 const rateLimitMap = new Map();
 
-/**
- * يتحقق من تجاوز IP للحد المسموح.
- * @param {string} ip
- * @param {number} maxRequests — الحد الأقصى للطلبات في النافذة الزمنية
- * @param {number} windowMs   — النافذة الزمنية بالمليثانية
- */
 export function isRateLimited(ip, maxRequests = 10, windowMs = 60_000) {
   const now   = Date.now();
   const entry = rateLimitMap.get(ip) || { count: 0, start: now };

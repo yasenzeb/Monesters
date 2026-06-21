@@ -6,6 +6,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// ── PHASE 4: URL validation ──
+const ALLOWED_URL_PATTERNS = [
+  /^https:\/\/res\.cloudinary\.com\//,
+  /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co\/storage\//
+];
+
+function isAllowedUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  return ALLOWED_URL_PATTERNS.some(pattern => pattern.test(url));
+}
+
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -49,18 +60,48 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'name, type, and price are required.' });
       }
 
+      // ── PHASE 4: Verify category exists ──
+      const { data: catData, error: catError } = await supabase
+        .from('categories')
+        .select('slug')
+        .eq('slug', type)
+        .single();
+
+      if (catError || !catData) {
+        return res.status(400).json({ success: false, error: 'الفئة غير موجودة' });
+      }
+
+      // ── PHASE 4: Validate discount_value as number ──
+      const parsedDiscountValue = discount_type === 'none'
+        ? 0
+        : (parseFloat(discount_value) || 0);
+
+      // ── PHASE 4: Validate image_url ──
+      if (image_url && !isAllowedUrl(image_url)) {
+        return res.status(400).json({ success: false, error: 'رابط الصورة غير مسموح به' });
+      }
+
+      // ── PHASE 4: Validate gallery URLs ──
+      if (Array.isArray(gallery)) {
+        for (const url of gallery) {
+          if (url && !isAllowedUrl(url)) {
+            return res.status(400).json({ success: false, error: 'رابط غير مسموح به في المعرض' });
+          }
+        }
+      }
+
       const { data, error } = await supabase
         .from('products')
         .insert([{
           name,
           type,
-          price:            parseInt(price),
-          image_url:        image_url     || null,
-          discount_type:    discount_type || 'none',
-          discount_value:   discount_value || 0,
-          sizes:            Array.isArray(sizes) && sizes.length ? sizes : [38,39,40,41,42,43,44,45],
-          colors:           Array.isArray(colors) ? colors : [],
-          gallery:          Array.isArray(gallery) ? gallery : [],
+          price: parseInt(price),
+          image_url: image_url || null,
+          discount_type: discount_type || 'none',
+          discount_value: parsedDiscountValue,
+          sizes: Array.isArray(sizes) && sizes.length ? sizes : [38,39,40,41,42,43,44,45],
+          colors: Array.isArray(colors) ? colors : [],
+          gallery: Array.isArray(gallery) ? gallery : [],
           main_image_index: main_image_index || 0
         }])
         .select()

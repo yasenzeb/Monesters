@@ -1,18 +1,4 @@
 // api/reviews.js — إدارة آراء العملاء عبر Supabase
-// migration SQL (نفذه مرة واحدة في Supabase SQL editor):
-//
-// create table if not exists reviews (
-//   id          uuid primary key default gen_random_uuid(),
-//   name        text not null check (char_length(name) <= 100),
-//   text        text not null check (char_length(text) <= 1000),
-//   rating      smallint not null check (rating between 1 and 5),
-//   created_at  timestamptz not null default now()
-// );
-// alter table reviews enable row level security;
-// create policy "public read reviews"  on reviews for select using (true);
-// create policy "service insert"       on reviews for insert with check (true);
-// create policy "service delete"       on reviews for delete using (true);
-
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, requireAdmin, safeError } from './_auth.js';
 

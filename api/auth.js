@@ -1,5 +1,5 @@
 // api/auth.js — نقطة تحقق server-side من كلمة المرور
-import { setCorsHeaders, isRateLimited } from './_auth.js';
+import { setCorsHeaders, isRateLimited, generateToken } from './_auth.js';
 
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
@@ -46,5 +46,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ success: false, error: 'كلمة المرور غلط!' });
   }
 
-  return res.status(200).json({ success: true });
+  // ── PHASE 3: Generate and return token ──
+  const token = generateToken();
+
+  return res.status(200).json({ success: true, token });
 }
