@@ -384,7 +384,7 @@ tbody td{padding:12px 14px;vertical-align:middle}
       </div>
     </section>
 
-    <!-- ORDERS PANEL - PHASE 4: XSS Protection -->
+    <!-- ORDERS PANEL -->
     <section class="panel" id="panel-orders">
       <div class="table-wrap">
         <div class="table-toolbar">
@@ -620,7 +620,7 @@ async function doLogin(){
     const resp=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
     const data=await resp.json();
     if(data.success){
-      // ── PHASE 3: Store token instead of password ──
+      // Store token instead of password
       sessionStorage.setItem(SESSION_KEY,'1');
       sessionStorage.setItem(PW_KEY,data.token);
       loginAttempts=0;
@@ -686,23 +686,29 @@ function toast(msg,type='success'){
   setTimeout(()=>div.remove(),4000);
 }
 
-/* ══ API - PHASE 3: Using token instead of password ══ */
+/* ══ API - Using token instead of password ══ */
 async function api(method,path,body){
   const token=sessionStorage.getItem(PW_KEY)||'';
   const opts={method,headers:{'Content-Type':'application/json','x-admin-token':token}};
   if(body)opts.body=JSON.stringify(body);
-  const res=await fetch(path,opts);
-  const data=await res.json();
   
-  // ── PHASE 3: Auto-logout on 401 ──
-  if(res.status===401){
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(PW_KEY);
-    alert('انتهت الجلسة، الرجاء تسجيل الدخول مرة أخرى');
-    location.reload();
-    throw new Error('Unauthorized');
+  try {
+    const res=await fetch(path,opts);
+    const data=await res.json();
+    
+    // Auto-logout on 401
+    if(res.status===401){
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(PW_KEY);
+      alert('انتهت الجلسة، الرجاء تسجيل الدخول مرة أخرى');
+      location.reload();
+      throw new Error('Unauthorized');
+    }
+    return data;
+  } catch(err) {
+    console.error('[API Error]', err);
+    throw err;
   }
-  return data;
 }
 
 /* ══ SECURITY: XSS escape ══ */
@@ -738,7 +744,6 @@ function renderGalleryGrid(containerId, contextId){
     if(slot&&slot.uploading){
       div.innerHTML=`<div class="slot-placeholder"><i class="fas fa-spinner fa-spin" style="color:var(--gold)"></i><span>جارٍ الرفع...</span></div><div class="gallery-slot .slot-num">${i+1}</div><div class="upload-progress-bar" id="gpb-${contextId}-${i}" style="width:0%"></div>`;
     } else if(slot&&slot.url){
-      // ── PHASE 4: XSS Protection - htmlEsc for url ──
       const escapedUrl = htmlEsc(slot.url);
       div.innerHTML=`
         <img src="${escapedUrl}" alt="صورة ${i+1}">
@@ -758,24 +763,44 @@ function renderGalleryGrid(containerId, contextId){
 }
 
 async function handleGalleryUpload(event, containerId, contextId, slotIndex){
-  const file=event.target.files[0];if(!file)return;
+  const file=event.target.files[0];
+  if(!file)return;
+  
   galleryData[contextId][slotIndex]={url:null,uploading:true};
   renderGalleryGrid(containerId,contextId);
 
-  const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
-  try{
-    const result=await api('POST','/api/upload',{data:base64,fileName:file.name});
-    if(!result.success)throw new Error(result.error);
+  try {
+    // Use FormData instead of JSON to avoid parsing issues
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = sessionStorage.getItem(PW_KEY) || '';
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      headers: {
+        'x-admin-token': token
+      },
+      body: formData
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) throw new Error(result.error || 'فشل الرفع');
+    
     galleryData[contextId][slotIndex]={url:result.url,uploading:false};
     const hasMain=galleryData[contextId].some((s,i)=>s&&s.url&&i===mainIndex[contextId]);
-    if(!hasMain)mainIndex[contextId]=slotIndex;
+    if(!hasMain) mainIndex[contextId]=slotIndex;
     renderGalleryGrid(containerId,contextId);
     toast('✓ تم رفع الصورة','success');
-  }catch(err){
+    
+  } catch(err) {
+    console.error('[Upload Error]', err);
     galleryData[contextId][slotIndex]={url:null,uploading:false};
     renderGalleryGrid(containerId,contextId);
-    toast('فشل رفع الصورة: '+err.message,'error');
+    toast('فشل رفع الصورة: '+(err.message||'خطأ غير معروف'),'error');
   }
+  
+  event.target.value = '';
 }
 
 function removeGallerySlot(containerId, contextId, slotIndex){
@@ -969,7 +994,6 @@ function updateStats(){
   document.getElementById('stat-sports').textContent=(allProducts||[]).filter(p=>p.type==='sports').length;
 }
 
-// ── PHASE 4: XSS Protection in buildThumbsHtml ──
 function buildThumbsHtml(p){
   const gallery=Array.isArray(p.gallery)&&p.gallery.length?p.gallery:[];
   const mainImg=p.image_url||gallery[0]||null;
@@ -980,7 +1004,6 @@ function buildThumbsHtml(p){
     ${extra}</div>`;
 }
 
-// ── PHASE 4: XSS Protection in discountLabel ──
 function discountLabel(p){
   if(!p.discount_type||p.discount_type==='none')return'<span style="color:var(--muted)">—</span>';
   const val = htmlEsc(String(p.discount_value || '0'));
@@ -989,7 +1012,6 @@ function discountLabel(p){
   return'—';
 }
 
-// ── PHASE 4: XSS Protection in badgeHTML ──
 function badgeHTML(type){
   const cat=allCategories.find(c=>c.slug===type||c.id===type);
   const name=cat?htmlEsc(cat.name):htmlEsc(type);
@@ -1045,7 +1067,7 @@ function renderProductsTable(){
   updatePagination();
 }
 
-/* ══ ORDERS - PHASE 4: XSS Protection ══ */
+/* ══ ORDERS ══ */
 async function loadOrders(){
   try{
     const data=await api('GET','/api/orders');
