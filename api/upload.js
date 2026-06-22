@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     const { createHash } = await import('crypto');
     const sig = createHash('sha1').update(`folder=${folder}&timestamp=${timestamp}${apiSecret}`).digest('hex');
 
-    const formData = new URLSearchParams();
+    const formData = new FormData();
     formData.append('file', base64Data);
     formData.append('api_key', apiKey);
     formData.append('timestamp', timestamp.toString());
