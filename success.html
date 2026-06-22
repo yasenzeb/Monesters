@@ -121,8 +121,8 @@ async function handleReceiptUpload(input) {
 
     if (!uploadData.success) throw new Error(uploadData.error || 'فشل رفع الصورة');
 
-    const receiptRes = await fetch('/api/order-receipt', {
-      method: 'POST',
+    const receiptRes = await fetch('/api/orders', {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ order_number: orderNum, receipt_url: uploadData.url })
     });

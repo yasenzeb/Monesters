@@ -492,8 +492,8 @@ function checkoutPage() {
 
         this.paymentProof = uploadData.url;
 
-        const receiptResp = await fetch('/api/order-receipt', {
-          method: 'POST',
+        const receiptResp = await fetch('/api/orders', {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             order_number: this.orderNumber,
