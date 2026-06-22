@@ -215,10 +215,13 @@ ${itemsText}
 🚚 الشحن: EGP ${parsedShipping}
 ✅ الإجمالي: EGP ${parsedTotal}`;
 
-    // إرسال الإشعار (لا ننتظر)
-    sendPushoverNotification(`🛒 طلب جديد #${orderNumber}`, adminMessage)
-      .then(sent => console.log('[Pushover] Sent:', sent))
-      .catch(err => console.error('[Pushover] Error:', err));
+    // إرسال الإشعار — ننتظر حتى لا ينتهي الـ serverless قبله
+    try {
+      const sent = await sendPushoverNotification(`🛒 طلب جديد #${orderNumber}`, adminMessage);
+      console.log('[Pushover] Sent:', sent);
+    } catch (pushErr) {
+      console.error('[Pushover] Error:', pushErr);
+    }
 
     // ── الرد ──
     return res.status(201).json({

@@ -604,8 +604,12 @@ const PW_KEY='monsters_admin_pw';
 const MAX_ATTEMPTS=5;
 let loginAttempts=0,lockUntil=0;
 
-function checkAuth(){
-  if(sessionStorage.getItem(SESSION_KEY)==='1') showApp();
+async function checkAuth(){
+  if(sessionStorage.getItem(SESSION_KEY)==='1'){
+    const token=sessionStorage.getItem(PW_KEY)||'';
+    if(!token){doLogout();return;}
+    showApp();
+  }
 }
 
 async function doLogin(){
@@ -635,7 +639,7 @@ async function doLogin(){
   }catch(e){
     document.getElementById('login-error').textContent='فشل الاتصال بالخادم.';
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='دخول';}
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-lock"></i> دخول';}
   }
 }
 
@@ -742,7 +746,7 @@ function renderGalleryGrid(containerId, contextId){
     div.dataset.slot=i;
 
     if(slot&&slot.uploading){
-      div.innerHTML=`<div class="slot-placeholder"><i class="fas fa-spinner fa-spin" style="color:var(--gold)"></i><span>جارٍ الرفع...</span></div><div class="gallery-slot .slot-num">${i+1}</div><div class="upload-progress-bar" id="gpb-${contextId}-${i}" style="width:0%"></div>`;
+      div.innerHTML=`<div class="slot-placeholder"><i class="fas fa-spinner fa-spin" style="color:var(--gold)"></i><span>جارٍ الرفع...</span></div><div class="slot-num">${i+1}</div><div class="upload-progress-bar" id="gpb-${contextId}-${i}" style="width:0%"></div>`;
     } else if(slot&&slot.url){
       const escapedUrl = htmlEsc(slot.url);
       div.innerHTML=`
@@ -902,7 +906,7 @@ async function submitAddCategory(){
 
 let deletingCatSlug=null;
 function openDeleteCatModal(id,name){deletingCatId=id;document.getElementById('delete-cat-name').textContent=name;document.getElementById('delete-cat-modal').style.display='';}
-function closeDeleteCatModal(e){if(e&&e.target!==document.querySelector('#delete-cat-modal .modal-overlay'))return;document.getElementById('delete-cat-modal').style.display='none';deletingCatId=null;}
+function closeDeleteCatModal(e){if(e&&e.target!==e.currentTarget&&e.type!=='click')return;document.getElementById('delete-cat-modal').style.display='none';deletingCatId=null;}
 async function confirmDeleteCat(){
   const btn=document.getElementById('btn-delete-cat-confirm');
   btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
@@ -962,7 +966,7 @@ async function submitAddReview(){
 
 function resetReviewForm(){document.getElementById('rev-name').value='';document.getElementById('rev-text').value='';document.querySelectorAll('input[name="rating"]').forEach(r=>r.checked=false);}
 function openDeleteRevModal(id){deletingRevId=id;document.getElementById('delete-rev-modal').style.display='';}
-function closeDeleteRevModal(e){if(e&&e.target!==document.querySelector('#delete-rev-modal .modal-overlay'))return;document.getElementById('delete-rev-modal').style.display='none';deletingRevId=null;}
+function closeDeleteRevModal(e){if(e&&e.target!==e.currentTarget&&e.type!=='click')return;document.getElementById('delete-rev-modal').style.display='none';deletingRevId=null;}
 async function confirmDeleteRev(){
   const btn=document.getElementById('btn-delete-rev-confirm');
   if(btn){btn.disabled=true;}
@@ -1257,7 +1261,7 @@ function openEditModal(id){
   document.getElementById('edit-modal').style.display='';
 }
 
-function closeEditModal(e){if(e&&e.target!==document.querySelector('#edit-modal .modal-overlay'))return;document.getElementById('edit-modal').style.display='none';editingProductId=null;}
+function closeEditModal(e){if(e&&e.target!==e.currentTarget&&e.type!=='click')return;document.getElementById('edit-modal').style.display='none';editingProductId=null;}
 
 async function submitEditProduct(){
   const name=document.getElementById('edit-name').value.trim();
@@ -1295,7 +1299,7 @@ async function submitEditProduct(){
 
 /* ══ DELETE PRODUCT ══ */
 function openDeleteModal(id,name){deletingProductId=id;document.getElementById('delete-product-name').textContent=name;document.getElementById('delete-modal').style.display='';}
-function closeDeleteModal(e){if(e&&e.target!==document.querySelector('#delete-modal .modal-overlay'))return;document.getElementById('delete-modal').style.display='none';deletingProductId=null;}
+function closeDeleteModal(e){if(e&&e.target!==e.currentTarget&&e.type!=='click')return;document.getElementById('delete-modal').style.display='none';deletingProductId=null;}
 async function confirmDelete(){
   const btn=document.getElementById('btn-delete-confirm');
   btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
