@@ -111,7 +111,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 .discount-value-input{flex:1}
 
 /* Gallery Upload */
-.gallery-upload-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.gallery-upload-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}
 .gallery-slot{position:relative;border:2px dashed var(--border);border-radius:12px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface);cursor:pointer;overflow:hidden;transition:all .2s}
 .gallery-slot:hover{border-color:var(--gold)}
 .gallery-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
@@ -215,7 +215,10 @@ tbody td{padding:12px 14px;vertical-align:middle}
   .table-toolbar{gap:8px}
   .discount-row{flex-direction:column}
   .discount-type-select{flex:none;width:100%}
-  .gallery-upload-grid{grid-template-columns:repeat(2,1fr)}
+  .gallery-upload-grid{grid-template-columns:repeat(5,1fr)}
+}
+@media(max-width:480px){
+  .gallery-upload-grid{grid-template-columns:repeat(3,1fr);gap:6px}
 }
 @media(max-width:400px){
   .stats-grid{grid-template-columns:1fr 1fr;gap:10px}
@@ -332,9 +335,9 @@ tbody td{padding:12px 14px;vertical-align:middle}
             <div class="form-error" id="err-discount"></div>
           </div>
 
-          <!-- GALLERY 4 IMAGES -->
+          <!-- GALLERY 10 IMAGES -->
           <div class="form-group full">
-            <label>صور المنتج (حتى 4 صور — اختر الصورة الرئيسية بالضغط على "رئيسية")</label>
+            <label>صور المنتج (حتى 10 صور — اختر الصورة الرئيسية بالضغط على "رئيسية")</label>
             <div class="gallery-upload-grid" id="new-gallery-grid"></div>
             <div class="form-error" id="err-image"></div>
           </div>
@@ -528,7 +531,7 @@ tbody td{padding:12px 14px;vertical-align:middle}
 
         <!-- EDIT GALLERY -->
         <div class="form-group full">
-          <label>صور المنتج (حتى 4 صور — اضغط "رئيسية" لتحديد صورة الواجهة)</label>
+          <label>صور المنتج (حتى 10 صور — اضغط "رئيسية" لتحديد صورة الواجهة)</label>
           <div class="gallery-upload-grid" id="edit-gallery-grid"></div>
         </div>
 
@@ -725,11 +728,20 @@ const PER_PAGE=10;
 let editingProductId=null,deletingProductId=null,deletingCatId=null,deletingRevId=null;
 
 /* ══ GALLERY SYSTEM ══ */
+const MAX_GALLERY_IMAGES = 10;
 const galleryData={};
 const mainIndex={};
 
+function optimizeCloudinaryUrl(url, width=600) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('res.cloudinary.com') && url.includes('/upload/') && !url.includes('/f_auto,q_auto')) {
+    return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+  }
+  return url;
+}
+
 function initGalleryGrid(containerId, contextId, existingGallery=[], existingMainIndex=0){
-  galleryData[contextId]=Array(4).fill(null).map((_,i)=>({url: existingGallery[i]||null, uploading:false}));
+  galleryData[contextId]=Array(MAX_GALLERY_IMAGES).fill(null).map((_,i)=>({url: existingGallery[i]||null, uploading:false}));
   mainIndex[contextId]=existingMainIndex||0;
   renderGalleryGrid(containerId,contextId);
 }
@@ -738,7 +750,7 @@ function renderGalleryGrid(containerId, contextId){
   const container=document.getElementById(containerId);
   if(!container)return;
   container.innerHTML='';
-  for(let i=0;i<4;i++){
+  for(let i=0;i<MAX_GALLERY_IMAGES;i++){
     const slot=galleryData[contextId][i];
     const isMain=mainIndex[contextId]===i&&slot&&slot.url;
     const div=document.createElement('div');
@@ -748,9 +760,9 @@ function renderGalleryGrid(containerId, contextId){
     if(slot&&slot.uploading){
       div.innerHTML=`<div class="slot-placeholder"><i class="fas fa-spinner fa-spin" style="color:var(--gold)"></i><span>جارٍ الرفع...</span></div><div class="slot-num">${i+1}</div><div class="upload-progress-bar" id="gpb-${contextId}-${i}" style="width:0%"></div>`;
     } else if(slot&&slot.url){
-      const escapedUrl = htmlEsc(slot.url);
+      const escapedUrl = htmlEsc(optimizeCloudinaryUrl(slot.url, 200));
       div.innerHTML=`
-        <img src="${escapedUrl}" alt="صورة ${i+1}">
+        <img src="${escapedUrl}" alt="صورة ${i+1}" loading="lazy" decoding="async">
         <div class="slot-num">${isMain?'رئيسية':i+1}</div>
         <button class="remove-img" onclick="removeGallerySlot('${containerId}','${contextId}',${i})" title="حذف"><i class="fas fa-times"></i></button>
         <button class="set-main-btn" onclick="setMainImage('${containerId}','${contextId}',${i})">${isMain?'✓ رئيسية':'تعيين رئيسية'}</button>
@@ -1002,9 +1014,9 @@ function buildThumbsHtml(p){
   const gallery=Array.isArray(p.gallery)&&p.gallery.length?p.gallery:[];
   const mainImg=p.image_url||gallery[0]||null;
   if(!mainImg)return`<div class="prod-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--muted)"><i class="fas fa-image"></i></div>`;
-  const escapedMainImg = htmlEsc(mainImg);
+  const escapedMainImg = htmlEsc(optimizeCloudinaryUrl(mainImg, 100));
   const extra=gallery.length>1?`<span style="font-size:.65rem;color:var(--muted);display:block;margin-top:2px">+${gallery.length} صور</span>`:'';
-  return`<div style="display:flex;flex-direction:column;align-items:center"><img class="prod-thumb" src="${escapedMainImg}" onerror="this.src='https://placehold.co/46x46/111/eab308?text=?'">
+  return`<div style="display:flex;flex-direction:column;align-items:center"><img class="prod-thumb" src="${escapedMainImg}" alt="${htmlEsc(p.name)}" loading="lazy" decoding="async" onerror="this.src='https://placehold.co/46x46/111/eab308?text=?'">
     ${extra}</div>`;
 }
 

@@ -69,8 +69,8 @@
     <div>
       <!-- Main Image -->
       <div class="relative rounded-3xl overflow-hidden bg-gray-50 border border-gray-100 mb-3 main-img-wrap" style="min-height:350px">
-        <img :src="activeImage || 'https://placehold.co/600x500/111/22c55e?text=MONSTERS'"
-             :alt="product.name" class="w-full object-cover" style="min-height:350px;max-height:480px;object-fit:contain"/>
+        <img :src="optimizeCloudinaryUrl(activeImage, 800) || 'https://placehold.co/600x500/111/22c55e?text=MONSTERS'"
+             :alt="product.name" loading="lazy" decoding="async" class="w-full object-cover" style="min-height:350px;max-height:480px;object-fit:contain"/>
         <template x-if="product.discount_type && product.discount_value">
           <span class="absolute top-4 right-4 bg-green-500 text-black font-black px-4 py-2 rounded-full text-lg"
             x-text="product.discount_type==='percent' ? '-'+product.discount_value+'%' : 'خصم'"></span>
@@ -82,7 +82,7 @@
           <div @click="activeImage=img"
                :class="activeImage===img ? 'thumb-active border-2' : 'border border-gray-200'"
                class="thumb-img w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
-            <img :src="img" :alt="'صورة '+(idx+1)" class="w-full h-full object-cover"/>
+            <img :src="optimizeCloudinaryUrl(img, 200)" :alt="'صورة '+(idx+1)" loading="lazy" decoding="async" class="w-full h-full object-cover"/>
           </div>
         </template>
       </div>
@@ -202,6 +202,14 @@ function productPage() {
     colors: [],
     activeImage: '',
     allImages: [],
+
+    optimizeCloudinaryUrl(url, width=600) {
+      if (!url || typeof url !== 'string') return url;
+      if (url.includes('res.cloudinary.com') && url.includes('/upload/') && !url.includes('/f_auto,q_auto')) {
+        return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+      }
+      return url;
+    },
 
     init() {
       try { this.product = JSON.parse(localStorage.getItem('monsters_product') || '{}'); } catch {}
